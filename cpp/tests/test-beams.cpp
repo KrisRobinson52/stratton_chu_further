@@ -1,4 +1,6 @@
-#include "beams.hpp"
+#include "stratton-chu/plane-surface.hpp"
+#include "stratton-chu/parallel-beam.hpp"
+#include "stratton-chu/stratton-chu-field.hpp"
 
 #include "gtest/gtest.h"
 

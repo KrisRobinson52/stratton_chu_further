@@ -1,17 +1,22 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include "stratton-chu/types.hpp"
 
-#include "types.hpp"
 #include <complex>
 #include <functional>
 
-struct GreenFunc
+class GreenFunc
 {
+public:
     GreenFunc(const Position& r, const Position& r0, double k);
 
-    Complex value;
-    VectorComplex gradient;
+    const Complex& value();
+    const VectorComplex& gradient();
+
+private:
+    Complex m_value;
+    VectorComplex m_gradient;
 };
 
 template<typename ValueType>
