@@ -2,21 +2,12 @@
 #include "stratton-chu/parallel-beam.hpp"
 #include "stratton-chu/stratton-chu-field.hpp"
 
-#include "gtest/gtest.h"
+#include <iostream>
 
-#include <cmath>
-
-TEST(PlaneSurfaceTest, Operating)
+int main()
 {
-    PlaneSurface surf({0, 0, 0}, {1, 0, 0}, {0, 1, 0});
-    auto p = surf.point({1, 2});
-    ASSERT_NEAR(p[0], 1.0, 1e-5);
-    ASSERT_NEAR(p[1], 2.0, 1e-5);
-    ASSERT_NEAR(p[2], 0.0, 1e-5);
-}
+    std::cout << "Running stratton-chu computation" << std::endl;
 
-TEST(StrattonChuTest, PlaneSurfReflection)
-{
     PlaneSurface surface(
         {0.0, 0.0, 0.0},
         {1.0, 0.0, 0.0},
@@ -47,5 +38,5 @@ TEST(StrattonChuTest, PlaneSurfReflection)
         FieldValue val = reflection.get(p);
         std::cout << "Point " << p.str() << ": " << val.E.str() << std::endl;
     }
-};
-
+    return 0;
+}

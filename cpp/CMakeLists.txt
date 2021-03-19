@@ -4,6 +4,7 @@ project("stratton-chu-beams-cpp" CXX)
 
 add_subdirectory(stratton-chu-library)
 add_subdirectory(3rdparty/googletest)
+add_subdirectory(app)
 
 enable_testing()
 
