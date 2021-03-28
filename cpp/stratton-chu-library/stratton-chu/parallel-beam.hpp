@@ -8,7 +8,7 @@
 class ParallelBeamZ : public FieldBase
 {
 public:
-    using FieldAmpl = std::function<double(double, double)>;
+    using FieldAmpl = std::function<Complex(double, double)>;
 
     ParallelBeamZ(double lambda, FieldAmpl Ex, FieldAmpl Ey, double z0);
 

@@ -28,7 +28,7 @@ ValueType integrate(std::function<ValueType(double, double)> func,
     double step_x = (x_max - x_min) / Nx;
     double step_y = (y_max - y_min) / Ny;
 
-    ValueType result;
+    ValueType result = ValueType();
 
     // Sum over central block
     for (size_t i = 1; i != Nx; i++)
