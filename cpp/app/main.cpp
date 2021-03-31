@@ -1,6 +1,9 @@
 #include "stratton-chu/plane-surface.hpp"
+#include "stratton-chu/parabolic-surface.hpp"
 #include "stratton-chu/parallel-beam.hpp"
 #include "stratton-chu/stratton-chu-field.hpp"
+
+#include "stratton-chu/csv-saver.hpp"
 
 #include <iostream>
 
@@ -32,11 +35,15 @@ int main()
     double z_from = -2.0;
     double z_to = 2.0;
 
+    CSVSaver csv_saver("output.txt");
+
     for (int i = 0; i < n_points; i++)
     {
         Position p(0.0, 2.05, z_from + (z_to - z_from) / (n_points-1) * i);
         FieldValue val = reflection.get(p);
-        std::cout << "Point " << p.str() << ": " << val.E.str() << std::endl;
+        std::cout << "Point " << p.str() << ": E = " << val.E.str() << std::endl;
+        csv_saver.add_point(p, val);
     }
+
     return 0;
 }

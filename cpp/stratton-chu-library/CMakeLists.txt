@@ -9,12 +9,16 @@ set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/stratton-chu/geometry.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/types.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/utils.hpp
+    ${PROJECT_SOURCE_DIR}/stratton-chu/parabolic-surface.hpp
+    ${PROJECT_SOURCE_DIR}/stratton-chu/csv-saver.hpp
 
     ${PROJECT_SOURCE_DIR}/src/parallel-beam.cpp
     ${PROJECT_SOURCE_DIR}/src/utils.cpp
     ${PROJECT_SOURCE_DIR}/src/field.cpp
     ${PROJECT_SOURCE_DIR}/src/stratton-chu-field.cpp
     ${PROJECT_SOURCE_DIR}/src/plane-surface.cpp
+    ${PROJECT_SOURCE_DIR}/src/parabolic-surface.cpp
+    ${PROJECT_SOURCE_DIR}/src/csv-saver.cpp
 )
 
 add_library(${PROJECT_NAME} ${LIB_SOURCES})

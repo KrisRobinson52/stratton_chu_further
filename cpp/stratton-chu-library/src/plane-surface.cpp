@@ -4,7 +4,7 @@
 PlaneSurface::PlaneSurface(const Position& r0, const Vector& alpha, const Vector& beta) :
     m_r0(r0), m_alpha(alpha), m_beta(beta)
 {
-    m_dS_over_dxdy_const = alpha % beta;
+    m_dS_over_dxdy_const = m_alpha % m_beta;
 }
 
 Position PlaneSurface::point(const Vector2D& pos)

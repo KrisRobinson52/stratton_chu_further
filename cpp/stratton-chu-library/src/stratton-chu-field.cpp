@@ -8,7 +8,6 @@ StrattonChuReflection::StrattonChuReflection(ISurface& surf, IField& field, cons
     FieldBase(field.lambda()),
     m_surf(surf), m_field(field), m_region(region)
 {
-
 }
 
 FieldValue StrattonChuReflection::get(const Position& pos)
@@ -16,16 +15,19 @@ FieldValue StrattonChuReflection::get(const Position& pos)
     FieldValue result;
 
     result.E = integrate<VectorComplex>(
-        [this, &pos] (double x, double y) { return subint_E(x, y, pos); },
+        [this, &pos] (double x, double y) -> VectorComplex { return subint_E(x, y, pos); },
         m_region.x_min, m_region.x_max,
         m_region.y_min, m_region.y_max,
         200, 200
     );
     result.E *= 1 / (4 * M_PI);
+
+    // @TODO Calculate B
+
     return result;
 }
 
-VectorComplex StrattonChuReflection::subint_E(double x, double y, Vector r)
+VectorComplex StrattonChuReflection::subint_E(double x, double y, const Position& r)
 {
     Vector2D xy = {x, y};
     Vector r0 = m_surf.point(xy);
