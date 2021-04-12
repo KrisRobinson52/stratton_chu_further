@@ -4,11 +4,25 @@
 #include "stratton-chu/stratton-chu-field.hpp"
 
 #include "stratton-chu/csv-saver.hpp"
+#include "stratton-chu/vtk-saver.hpp"
 
 #include <iostream>
 
 int main()
-{
+{   
+    VTKSurfaceSaver saver(10, 10, "Test quantity");
+
+    for (size_t x = 0; x < 10; x++)
+    {
+        for (size_t y = 0; y < 10; y++)
+        {
+            saver.set_point(x, y, Position(x, y, 0.1*x*y), sin(y), cos(y), sin(x)*cos(y));
+        }
+    }
+
+    saver.save("test-data.vtp");
+
+    /*
     std::cout << "Running stratton-chu computation" << std::endl;
 
     PlaneSurface surface(
@@ -44,6 +58,6 @@ int main()
         std::cout << "Point " << p.str() << ": E = " << val.E.str() << std::endl;
         csv_saver.add_point(p, val);
     }
-
+*/
     return 0;
 }

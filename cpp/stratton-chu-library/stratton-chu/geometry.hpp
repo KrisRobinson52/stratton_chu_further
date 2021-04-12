@@ -218,7 +218,7 @@ public:
     {
         double l = norm();
         for (int i=0; i<dim; i++)
-                x[i] /= l;
+            x[i] /= l;
     }
 
     Type x[dim];
