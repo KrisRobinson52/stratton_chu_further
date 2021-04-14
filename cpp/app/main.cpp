@@ -10,6 +10,23 @@
 
 int main()
 {   
+    /*
+    VTKVolumeSaver saver(100, 100, 100, "Test quantity");
+
+    for (size_t x = 0; x < 100; x++)
+    {
+        for (size_t y = 0; y < 100; y++)
+        {
+            for (size_t z = 0; z < 100; z++)
+            {
+                saver.set_point(x, y, z, Position(x, y, z), sin(y), cos(z), sin(x/10.0)*cos(y/10.0)*sin(z/10.0));
+            }
+        }
+    }
+
+    saver.save("test-data");*/
+
+    /*
     VTKSurfaceSaver saver(10, 10, "Test quantity");
 
     for (size_t x = 0; x < 10; x++)
@@ -20,9 +37,9 @@ int main()
         }
     }
 
-    saver.save("test-data.vtp");
+    saver.save("test-data");
+*/
 
-    /*
     std::cout << "Running stratton-chu computation" << std::endl;
 
     PlaneSurface surface(
@@ -58,6 +75,6 @@ int main()
         std::cout << "Point " << p.str() << ": E = " << val.E.str() << std::endl;
         csv_saver.add_point(p, val);
     }
-*/
+
     return 0;
 }
