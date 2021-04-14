@@ -21,6 +21,7 @@ public:
 private:
 
     VectorComplex subint_E(double x, double y, const Position& r);
+    VectorComplex subint_B(double x, double y, const Position& r);
 
     ISurface& m_surf;
     IField& m_field;

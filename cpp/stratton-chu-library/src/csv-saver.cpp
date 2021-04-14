@@ -16,5 +16,5 @@ void CSVSaver::add_point(Position p, FieldValue fv)
 
           << fv.B[0].real() << "," << fv.B[0].imag() << ","
           << fv.B[1].real() << "," << fv.B[1].imag() << ","
-          << fv.B[2].real() << "," << fv.B[2].imag() << "," << std::endl << std::flush;
+          << fv.B[2].real() << "," << fv.B[2].imag() << std::endl << std::flush;
 }
