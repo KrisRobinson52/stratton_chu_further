@@ -5,12 +5,6 @@
 #include "stratton-chu/field.hpp"
 #include "stratton-chu/surface.hpp"
 
-struct SurfaceRegion
-{
-    double x_min = -1.0, x_max = 1.0;
-    double y_min = -1.0, y_max = 1.0;
-};
-
 class StrattonChuReflection : public FieldBase
 {
 public:

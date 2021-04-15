@@ -8,6 +8,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g -funroll-loops -f
 
 add_subdirectory(stratton-chu-library)
 add_subdirectory(3rdparty/googletest)
+add_subdirectory(3rdparty/cubature)
 add_subdirectory(app)
 
 enable_testing()

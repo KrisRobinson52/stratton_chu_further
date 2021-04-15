@@ -13,12 +13,17 @@ StrattonChuReflection::StrattonChuReflection(ISurface& surf, IField& field, cons
 FieldValue StrattonChuReflection::get(const Position& pos)
 {
     FieldValue result;
-
-    result.E = integrate<VectorComplex>(
+/*
+    result.E = integrate_trapezoid<VectorComplex>(
         [this, &pos] (double x, double y) -> VectorComplex { return subint_E(x, y, pos); },
-        m_region.x_min, m_region.x_max,
-        m_region.y_min, m_region.y_max,
+        m_region,
         200, 200
+    );*/
+
+    result.E = integrate_cubature(
+        [this, &pos] (double x, double y) -> VectorComplex { return subint_E(x, y, pos); },
+        m_region,
+        1e-2, 1e-2
     );
     result.E *= 1 / (4 * M_PI);
 
