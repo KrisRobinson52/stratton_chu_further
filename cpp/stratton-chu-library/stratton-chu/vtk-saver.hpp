@@ -40,7 +40,8 @@ class VTKVolumeSaver
 public:
     VTKVolumeSaver(size_t Nx, size_t Ny, size_t Nz, const char* name);
 
-    void set_point(size_t x_index, size_t y_index, size_t z_index, Position p, double value_x, double value_y, double value_z);
+    void set_point(size_t x_index, size_t y_index, size_t z_index,
+                   Position p, double value_x, double value_y, double value_z);
     void save(const char* filename);
 
 private:

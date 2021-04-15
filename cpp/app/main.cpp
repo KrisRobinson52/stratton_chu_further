@@ -6,66 +6,23 @@
 #include "stratton-chu/csv-saver.hpp"
 #include "stratton-chu/vtk-saver.hpp"
 
+#include <tbb/tbb.h>
 #include <iostream>
 
 int main()
 {   
-    /*
-    VTKVolumeSaver saver(100, 100, 100, "Test quantity");
-
-    for (size_t x = 0; x < 100; x++)
-    {
-        for (size_t y = 0; y < 100; y++)
-        {
-            for (size_t z = 0; z < 100; z++)
-            {
-                saver.set_point(x, y, z, Position(x, y, z), sin(y), cos(z), sin(x/10.0)*cos(y/10.0)*sin(z/10.0));
-            }
-        }
-    }
-
-    saver.save("test-data");*/
-
-    /*
-    VTKSurfaceSaver saver(10, 10, "Test quantity");
-
-    for (size_t x = 0; x < 10; x++)
-    {
-        for (size_t y = 0; y < 10; y++)
-        {
-            saver.set_point(x, y, Position(x, y, 0.1*x*y), sin(y), cos(y), sin(x)*cos(y));
-        }
-    }
-
-    saver.save("test-data");
-*/
 
     std::cout << "Running stratton-chu computation" << std::endl;
 
-    PlaneSurface surface(
-        {0.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, -1.0}
-    );
-
     double F = 1.0;
-    double lambda = 0.01;
-    double h = 2 * sqrt(F);
+    double lambda = 0.000091; // 910 nm
+    double h = 2 * F;
 
     ParabolicSurface surface2(
         {0.0, 0.0, -F},
         {1.0, 0.0, 0.0},
         {0.0, 1.0, 0.0},
-        2.0*sqrt(F), 2.0*sqrt(F)
-    );
-
-    ParallelBeamZ beam(
-        lambda,
-        [](double x, double y) {
-            return exp(-(sqr(x) + sqr(y)) / sqr(0.5));
-        },
-        [](double, double) { return 0.0; },
-        0.0
+        4.0*F, 4.0*F
     );
 
     ParallelBeamZ beam2(
@@ -81,37 +38,31 @@ int main()
     region.y_min = -2.0;
     region.y_max = 2.0;
 
-    /*
-    StrattonChuReflection reflection(surface, beam, region);
-
-    int n_points = 10;
-
-    double z_from = -2.0;
-    double z_to = 2.0;
-
-    CSVSaver csv_saver("output.txt");
-
-    for (int i = 0; i < n_points; i++)
-    {
-        Position p(0.0, 2.05, z_from + (z_to - z_from) / (n_points-1) * i);
-        FieldValue val = reflection.get(p);
-        std::cout << "Point " << p.str() << ": E = " << val.E.str() << std::endl;
-        csv_saver.add_point(p, val);
-    }
-    */
-
     StrattonChuReflection reflection2(surface2, beam2, region);
 
-    int n_points = 101;
-    double z_from = 0.0 - 0.3;
-    double z_to = 0.0 + 0.3;
-    double x_from = 0.0 - 0.3;
-    double x_to = 0.0 + 0.3;
+    int n_points = 201;
+    double z_from = 0.0 - 0.001;
+    double z_to = 0.0 + 0.001;
+    double x_from = 0.0 - 0.001;
+    double x_to = 0.0 + 0.001;
 
+    //CSVSaver csv_saver("output.txt");
+    VTKSurfaceSaver vtk_saver(n_points, n_points, "Field E");
 
-    CSVSaver csv_saver("output.txt");
+    tbb::parallel_for( int(0), n_points,
+        [x_from, x_to, z_from, z_to, n_points, &reflection2, &vtk_saver](int i) {
+            for (int j = 0; j < n_points; j++)
+            {
+                Position p(x_from + (x_to - x_from) / (n_points-1) * i, 0.0, z_from + (z_to - z_from) / (n_points-1) * j);
+                FieldValue val = reflection2.get(p);
+                std::cout << "Point " << p.str() << ": E = " << val.E.str() << std::endl;
+                //csv_saver.add_point(p, val);
+                vtk_saver.set_point(i, j, p, val.E.x[0].real(), val.E.x[1].real(), val.E.x[2].real());
+            }
+        }
+    );
 
-
+    /*
     for (int i = 0; i < n_points; i++)
     {
         for (int j = 0; j < n_points; j++)
@@ -120,8 +71,10 @@ int main()
             FieldValue val = reflection2.get(p);
             std::cout << "Point " << p.str() << ": E = " << val.E.str() << std::endl;
             csv_saver.add_point(p, val);
+            vtk_saver.set_point(i, j, p, val.E.x[0].real(), val.E.x[1].real(), val.E.x[2].real());
         }
-    }
+    }*/
+    vtk_saver.save("NU_SHTO");
 
     return 0;
 }

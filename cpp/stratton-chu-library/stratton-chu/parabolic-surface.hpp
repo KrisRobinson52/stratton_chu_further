@@ -7,7 +7,7 @@ class ParabolicSurface : public ISurface
 {
 public:
     ParabolicSurface (const Position& r0, const Vector& alpha, const Vector& beta, const double a, const double b);
-    // Constructor of Parabolic surface r = r0 + α * x + β * y + [α×β] / |[α×β]| * (x²/a² + y²/b²)
+    // Constructor of Parabolic surface r = r0 + α * x + β * y + [α×β] / |[α×β]| * (x²/a + y²/b)
 
     Position point(const Vector2D& pos) override;
     Vector dS_over_dxdy(const Vector2D& pos) override;

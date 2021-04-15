@@ -17,8 +17,8 @@ struct SurfaceRegion
         x_min(x_min), x_max(x_max), y_min(y_min), y_max(y_max)
     { }
 
-    double x_min = -1.0, x_max = 1.0;
-    double y_min = -1.0, y_max = 1.0;
+    double x_min, x_max;
+    double y_min, y_max;
 };
 
 constexpr double c = 29979245800.0;

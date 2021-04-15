@@ -7,13 +7,10 @@ find_package(VTK COMPONENTS
   vtkFiltersGeneral
   vtkIOXML
   vtkInteractionStyle
-  vtkRenderingContextOpenGL2
-  vtkRenderingCore
-  vtkRenderingFreeType
-  vtkRenderingGL2PSOpenGL2
-  vtkRenderingOpenGL2
   REQUIRED
 )
+
+find_package(tbb)
 
 set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/stratton-chu/parallel-beam.hpp
@@ -43,6 +40,6 @@ add_library(${PROJECT_NAME} ${LIB_SOURCES})
 include(${VTK_USE_FILE})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${VTK_LIBRARIES} cubature)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${VTK_LIBRARIES} cubature tbb)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
