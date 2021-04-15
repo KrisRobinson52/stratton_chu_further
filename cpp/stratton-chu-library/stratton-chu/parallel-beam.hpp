@@ -5,7 +5,7 @@
 
 #include <functional>
 
-class ParallelBeamZ : public FieldBase
+class ParallelBeamZ : public FieldBase  // Тут нет расплывания получается в фазовом множителе...
 {
 public:
     using FieldAmpl = std::function<Complex(double, double)>;

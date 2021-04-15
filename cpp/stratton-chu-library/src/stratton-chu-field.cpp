@@ -49,3 +49,23 @@ VectorComplex StrattonChuReflection::subint_E(double x, double y, const Position
 
     return first_term + second_term;
 }
+
+VectorComplex StrattonChuReflection::subint_B(double x, double y, const Position& r)
+{
+    /*Vector2D xy = {x, y};
+    Vector r0 = m_surf.point(xy);
+    VectorComplex N = m_surf.dS_over_dxdy(xy).cast<Complex>();
+
+    FieldValue field = m_field.get(r0);
+    GreenFunc green(r, r0, m_k);
+
+    VectorComplex first_term = (N % field.B);
+    first_term *= 2.0 * Complex(0.0, 1.0) * m_k * green.value();
+
+    VectorComplex second_term = green.gradient();
+    second_term *= 2.0 * (N * field.E);
+
+    return first_term + second_term;
+    */
+    return VectorComplex();
+}
