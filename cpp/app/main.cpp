@@ -10,14 +10,14 @@
 #include <iostream>
 
 int main()
-{   
+{   //первая сферическая гармоника дипольная волна
     std::cout << "Running stratton-chu computation" << std::endl;
 
     double beam_radius = 20; // cm
     double F = 20.0; // cm
     double lambda = 0.000091; // 910 nm
     double h = 2 * F;
-
+    
     ParabolicSurface surface2(
         {0.0, 0.0, -F},
         {1.0, 0.0, 0.0},
@@ -27,8 +27,8 @@ int main()
 
     ParallelBeamZ beam2(
         lambda,
-        //[h](double x, double y) { return exp( - (sqr(x - h) + sqr(y)) / sqr(0.5) / 2); },
-        [h, beam_radius](double x, double y) { return sqr(x - h) + sqr(y) <= sqr(beam_radius) ? 1.0 : 0.0; },
+        [h, beam_radius](double x, double y) { return exp( - (sqr(x - h) + sqr(y)) / sqr(beam_radius/2) / 2); },
+        //[h, beam_radius](double x, double y) { return sqr(x - h) + sqr(y) <= sqr(beam_radius) ? 1.0 : 0.0; },
         [](double, double) { return 0.0; },
         0.0
     );
@@ -62,7 +62,7 @@ int main()
             }
         }
     );
-    vtk_saver.save("field-E-real");
+    vtk_saver.save("field-E-real-gauss");
 
     /*n_points = 50;
     z_from = 0.0 - 100 * lambda;

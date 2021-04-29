@@ -25,8 +25,6 @@ VectorComplex test_integrand(double x, double y)
 
 TEST(IntegrateCubature, Operating)
 {
-    auto function = [](double x, double y) { return x + 2*y; };
-
     SurfaceRegion reg1(-1.0, 1.0, -1.0, 1.0);
 
     VectorComplex result = integrate_cubature(test_integrand, reg1, 1e-2, 1e-2);

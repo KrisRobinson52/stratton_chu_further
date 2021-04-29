@@ -6,6 +6,7 @@
 #include <initializer_list>
 #include <cstring>
 #include <cmath>
+#include <complex>
 
 template<typename T>
 T sqr(T x)
@@ -70,10 +71,10 @@ public:
 
     double norm() const
     {
-        Type result = 0;
+        double result = 0;
         for (int i=0; i<dim; i++)
         {
-            result += sqr(std::abs(x[i]));
+            result += std::norm(x[i]);
         }
         return std::sqrt(result);
     }
@@ -190,7 +191,7 @@ public:
         return result;
     }
 
-    VectorType operator/(Type right)
+    VectorType operator/(Type right) const
     {
         VectorType result;
         for (int i=0; i<dim; ++i)

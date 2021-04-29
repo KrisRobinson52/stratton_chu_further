@@ -47,5 +47,61 @@ TEST(StrattonChuTest, PlaneSurfReflection)
         FieldValue val = reflection.get(p);
         std::cout << "Point " << p.str() << ": " << val.E.str() << std::endl;
     }
-};
+}
+
+TEST(ParallelBeamAlphaTest, CompareWithParallelBeamZ)
+{
+    FieldAmpl E1_ampl_z = [](double x, double y) {
+        return exp(-(sqr(x) + sqr(y)) / sqr(0.5));
+    };
+
+    FieldAmpl E1_ampl_a = [E1_ampl_z](double x, double y) {
+        return E1_ampl_z(y, x);
+    };
+
+
+    FieldAmpl E2_ampl_z = [](double x, double y) {
+        return exp(-(sqr(2*x) + sqr(3*y)) / sqr(1.5));
+    };
+
+    FieldAmpl E2_ampl_a = [E2_ampl_z](double x, double y) {
+        return E2_ampl_z(y, x);
+    };
+
+
+    ParallelBeamZ beam_z(0.1, E1_ampl_z, E2_ampl_z, 0.0);
+
+    ParallelBeamAlpha beam_a(0.1, Position(0.0, 0.0, 0.0), Vector(0.0, 3.0, 0.0), Vector(1.0, 0.0, 0.0),
+                             E2_ampl_a, E1_ampl_a);
+
+    std::vector<Position> points;
+
+    points.push_back(Position (0.0, 0.0, 0.0));
+    points.push_back(Position (3.3, 2.2, -5.5));
+    points.push_back(Position (-1.0, 0.0, 0.0));
+
+    for (size_t i = 0; i < points.size(); i++) {
+        FieldValue b_z = beam_z.get(points[i]);
+        FieldValue b_a = beam_a.get(points[i]);
+        VectorComplex delta_E = b_z.E - b_a.E;
+        VectorComplex delta_B = b_z.B - b_a.B;
+        ASSERT_LE( delta_E.norm() , 1e-5) << "For point " << i;
+        ASSERT_LE( delta_B.norm() , 1e-5) << "For point " << i;
+    };
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
