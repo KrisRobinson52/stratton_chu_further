@@ -7,6 +7,14 @@ struct FieldValue
 {
     VectorComplex E;
     VectorComplex B;
+
+    FieldValue operator+(const FieldValue& right)
+    {
+        FieldValue result(*this);
+        result.E += right.E;
+        result.B += right.B;
+        return result;
+    }
 };
 
 class IField

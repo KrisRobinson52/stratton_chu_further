@@ -9,82 +9,102 @@
 #include <tbb/tbb.h>
 #include <iostream>
 
-int main()
-{   //первая сферическая гармоника дипольная волна
-    std::cout << "Running stratton-chu computation" << std::endl;
+const double beam_radius = 10; // cm
+const double F = 20.0; // cm
+const double lambda = 0.000091; // 910 nm
 
-    double beam_radius = 20; // cm
-    double F = 20.0; // cm
-    double lambda = 0.000091; // 910 nm
-    double h = 2 * F;
-    
-    ParabolicSurface surface2(
+void plot(double h)
+{
+    std::cout << "Plotting for h = " << h << std::endl;
+
+    ParabolicSurface surface(
         {0.0, 0.0, -F},
         {1.0, 0.0, 0.0},
         {0.0, 1.0, 0.0},
         4.0*F, 4.0*F
     );
 
-    ParallelBeamZ beam2(
+    ParallelBeamZ beam1(
         lambda,
-        [h, beam_radius](double x, double y) { return exp( - (sqr(x - h) + sqr(y)) / sqr(beam_radius/2) / 2); },
-        //[h, beam_radius](double x, double y) { return sqr(x - h) + sqr(y) <= sqr(beam_radius) ? 1.0 : 0.0; },
+        //[h, beam_radius](double x, double y) { return exp( - (sqr(x - h) + sqr(y)) / sqr(beam_radius/2) / 2); },
+        [h](double x, double y) { return sqr(x - h) + sqr(y) <= sqr(beam_radius) ? 1.0 : 0.0; },
         [](double, double) { return 0.0; },
         0.0
     );
 
-    SurfaceRegion region;
-    region.x_min = h - beam_radius;
-    region.x_max = h + beam_radius;
-    region.y_min = 0.0 - beam_radius;
-    region.y_max = 0.0 + beam_radius;
+    ParallelBeamZ beam2(
+        lambda,
+        //[h, beam_radius](double x, double y) { return exp( - (sqr(x - h) + sqr(y)) / sqr(beam_radius/2) / 2); },
+        [h](double x, double y) { return sqr(x + h) + sqr(y) <= sqr(beam_radius) ? -1.0 : 0.0; },
+        [](double, double) { return 0.0; },
+        0.0
+    );
 
-    StrattonChuReflection reflection2(surface2, beam2, region);
+    SurfaceRegion region1;
+    region1.x_min = h - beam_radius;
+    region1.x_max = h + beam_radius;
+    region1.y_min = 0.0 - beam_radius;
+    region1.y_max = 0.0 + beam_radius;
+
+    SurfaceRegion region2;
+    region2.x_min = - h - beam_radius;
+    region2.x_max = - h + beam_radius;
+    region2.y_min = 0.0 - beam_radius;
+    region2.y_max = 0.0 + beam_radius;
+
+    StrattonChuReflection reflection1(surface, beam1, region1);
+    StrattonChuReflection reflection2(surface, beam2, region2);
 
     int n_points = 201;
-    double z_from = 0.0 - 10 * lambda;
-    double z_to = 0.0 + 10 * lambda;
-    double x_from = 0.0 - 10 * lambda;
-    double x_to = 0.0 + 10 * lambda;
+    double z_from = 0.0 - 15 * lambda;
+    double z_to = 0.0 + 15 * lambda;
+    double x_from = 0.0 - 15 * lambda;
+    double x_to = 0.0 + 15 * lambda;
 
     //CSVSaver csv_saver("output.txt");
-    VTKSurfaceSaver vtk_saver(n_points, n_points, "E_real");
+    VTKSurfaceSaver vtk_saver_1r(n_points, n_points, "E1_real");
+    VTKSurfaceSaver vtk_saver_1n(n_points, n_points, "E1_norm");
+    VTKSurfaceSaver vtk_saver_r(n_points, n_points, "E_real");
+    VTKSurfaceSaver vtk_saver_i(n_points, n_points, "E_imag");
+    VTKSurfaceSaver vtk_saver_n(n_points, n_points, "E_norm");
 
     tbb::parallel_for( int(0), n_points,
-        [x_from, x_to, z_from, z_to, n_points, &reflection2, &vtk_saver](int i) {
+        [x_from, x_to, z_from, z_to, n_points, &reflection1, &reflection2, &vtk_saver_r, &vtk_saver_i, &vtk_saver_n, &vtk_saver_1r, &vtk_saver_1n]
+        (int i) {
             for (int j = 0; j < n_points; j++)
             {
                 Position p(x_from + (x_to - x_from) / (n_points-1) * i, 0.0, z_from + (z_to - z_from) / (n_points-1) * j);
-                FieldValue val = reflection2.get(p);
+                FieldValue val1 = reflection1.get(p);
+                FieldValue val2 = reflection2.get(p);
+                FieldValue val = val1 + val2;
+
                 std::cout << "Point " << p.str() << ": E = " << val.E.str() << std::endl;
                 //csv_saver.add_point(p, val);
-                vtk_saver.set_point(i, j, p, val.E.x[0].real(), val.E.x[1].real(), val.E.x[2].real());
+                vtk_saver_1r.set_point(i, j, p, val1.E[0].real(), val1.E[1].real(), val1.E[2].real());
+                vtk_saver_1n.set_point(i, j, p, sqrt(std::norm(val1.E[0])), sqrt(std::norm(val1.E[1])), sqrt(std::norm(val1.E[2])));
+
+                vtk_saver_r.set_point(i, j, p, val.E[0].real(), val.E[1].real(), val.E[2].real());
+                vtk_saver_i.set_point(i, j, p, val.E[0].imag(), val.E[1].imag(), val.E[2].imag());
+                vtk_saver_n.set_point(i, j, p, sqrt(std::norm(val.E[0])), sqrt(std::norm(val.E[1])), sqrt(std::norm(val.E[2])));
             }
         }
     );
-    vtk_saver.save("field-E-real-gauss");
+    vtk_saver_1r.save(("field-E1-real-h=" + std::to_string(h)).c_str());
+    vtk_saver_1n.save(("field-E1-norm-h=" + std::to_string(h)).c_str());
+    vtk_saver_r.save(("field-E-real-h=" + std::to_string(h)).c_str());
+    vtk_saver_i.save(("field-E-imag-h=" + std::to_string(h)).c_str());
+    vtk_saver_n.save(("field-E-norm-h=" + std::to_string(h)).c_str());
+}
 
-    /*n_points = 50;
-    z_from = 0.0 - 100 * lambda;
-    z_to = 0.0 + 100 * lambda;
-    x_from = 0.0 - 100 * lambda;
-    x_to = 0.0 + 100 * lambda;
-
-    VTKSurfaceSaver vtk_saver_ampl(n_points, n_points, "E_ampl");
-
-    tbb::parallel_for( int(0), n_points,
-        [x_from, x_to, z_from, z_to, n_points, &reflection2, &vtk_saver_ampl](int i) {
-            for (int j = 0; j < n_points; j++)
-            {
-                Position p(x_from + (x_to - x_from) / (n_points-1) * i, 0.0, z_from + (z_to - z_from) / (n_points-1) * j);
-                FieldValue val = reflection2.get(p);
-                std::cout << "Point " << p.str() << std::endl;
-                //csv_saver.add_point(p, val);
-                vtk_saver_ampl.set_point(i, j, p, std::norm(val.E.x[0]), std::norm(val.E.x[1]), std::norm(val.E.x[2]));
-            }
-        }
-    );
-    vtk_saver_ampl.save("field-E-ampl");*/
-
+int main()
+{
+    std::cout << "Running stratton-chu computation" << std::endl;
+    int steps_count = 50;
+    double h_min = beam_radius;
+    double h_max = 3 * F;
+    for(int i = 0; i < steps_count; i++)
+    {
+        plot(h_min + (h_max - h_min) * i / (steps_count-1));
+    }
     return 0;
 }
