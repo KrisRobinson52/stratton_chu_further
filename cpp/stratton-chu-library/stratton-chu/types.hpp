@@ -21,6 +21,4 @@ struct SurfaceRegion
     double y_min, y_max;
 };
 
-constexpr double c = 29979245800.0;
-
 #endif // TYPES_HPP

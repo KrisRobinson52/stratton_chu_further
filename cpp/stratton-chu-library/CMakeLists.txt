@@ -40,6 +40,6 @@ add_library(${PROJECT_NAME} ${LIB_SOURCES})
 include(${VTK_USE_FILE})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${VTK_LIBRARIES} cubature tbb)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${VTK_LIBRARIES} cubature polynomial tbb)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)

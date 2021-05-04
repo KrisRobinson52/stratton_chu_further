@@ -6,11 +6,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -march=native -fext-numeric-litera
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -pg -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g -funroll-loops -ffast-math")
 
-add_subdirectory(stratton-chu-library)
-add_subdirectory(3rdparty/googletest)
 add_subdirectory(3rdparty/cubature)
+add_subdirectory(3rdparty/polynomial)
+add_subdirectory(stratton-chu-library)
 add_subdirectory(app)
 
 enable_testing()
 
+add_subdirectory(3rdparty/googletest)
 add_subdirectory(tests)

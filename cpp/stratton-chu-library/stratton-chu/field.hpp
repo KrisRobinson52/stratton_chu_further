@@ -3,6 +3,8 @@
 
 #include "stratton-chu/types.hpp"
 
+constexpr double c = 29979245800.0;
+
 struct FieldValue
 {
     VectorComplex E;

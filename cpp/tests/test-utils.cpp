@@ -1,7 +1,7 @@
 #include "stratton-chu/utils.hpp"
 
 #include "gtest/gtest.h"
-
+#include <iostream>
 
 TEST(IntegrateTest, Operating)
 {
@@ -29,4 +29,20 @@ TEST(IntegrateCubature, Operating)
 
     VectorComplex result = integrate_cubature(test_integrand, reg1, 1e-2, 1e-2);
     ASSERT_NEAR(0.0, result[0].real(), 1e-3);
+}
+
+TEST(GetFbyBeamParametersTest, OperatingByAlpha)
+{
+    double F = get_F_by_beam_parameters_alpha(0.0, M_PI_2, 100.0);
+    ASSERT_NEAR(50.0, F, 1e-5);
+
+    //std::cout << "[";
+/*    for(double alpha = 0.0; alpha<3*M_PI_4; alpha+=0.05)
+    {
+        std::cout << "[" << alpha << ", ";
+        double F = get_F_by_beam_parameters_alpha(alpha, M_PI_2/3, 100.0);
+        std::cout << F << "]," << std::endl;
+
+    }*/
+    //std::cout << "]" << std::endl;
 }
