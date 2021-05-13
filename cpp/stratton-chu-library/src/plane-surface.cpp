@@ -7,14 +7,14 @@ PlaneSurface::PlaneSurface(const Position& r0, const Vector& alpha, const Vector
     m_dS_over_dxdy_const = m_alpha % m_beta;
 }
 
-Position PlaneSurface::point(const Vector2D& pos)
+Position PlaneSurface::point(const Vector2D& pos) const
 {
     Position result;
     result = m_r0 + m_alpha * pos[0] + m_beta * pos[1];
     return result;
 }
 
-Vector PlaneSurface::dS_over_dxdy(const Vector2D&)
+Vector PlaneSurface::dS_over_dxdy(const Vector2D&) const
 {
     return m_dS_over_dxdy_const;
 }

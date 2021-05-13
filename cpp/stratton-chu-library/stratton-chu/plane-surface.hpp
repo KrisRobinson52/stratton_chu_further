@@ -8,8 +8,8 @@ class PlaneSurface : public ISurface
 public:
     PlaneSurface(const Position& r0, const Vector& alpha, const Vector& beta);
 
-    Position point(const Vector2D& pos) override;
-    Vector dS_over_dxdy(const Vector2D& pos) override;
+    Position point(const Vector2D& pos) const override;
+    Vector dS_over_dxdy(const Vector2D& pos) const override;
 
 private:
     Position m_r0;

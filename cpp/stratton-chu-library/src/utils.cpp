@@ -45,6 +45,8 @@ VectorComplex integrate_cubature(std::function<VectorComplex(double, double)> fu
     memset(error, 0, sizeof(result));
 
     int ret = pcubature(6, c_integrand, reinterpret_cast<void*>(&func), 2, xmin, xmax, 0, abs_tol, rel_tol, ERROR_L2, result, error);
+    if (ret != 0)
+        throw std::runtime_error("Integrator 'pcubature' reports FAILURE result");
 
     VectorComplex result_vector_complex;
     result_vector_complex[0].real(result[0]);

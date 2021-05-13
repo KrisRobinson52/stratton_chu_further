@@ -12,7 +12,7 @@ class ParallelBeamZ : public FieldBase  // Тут нет расплывания 
 public:
     ParallelBeamZ(double lambda, FieldAmpl Ex, FieldAmpl Ey, double z0);
 
-    FieldValue get(const Position& pos) override;
+    FieldValue get(const Position& pos) const override;
 
 private:
     FieldAmpl m_Ex, m_Ey;
@@ -32,7 +32,7 @@ public:
     ParallelBeamAlpha(double lambda, const Position& r0, const Vector& alpha1, const Vector& alpha2,
                       const FieldAmpl& E1, const FieldAmpl& E2);
 
-    FieldValue get(const Position& pos) override;
+    FieldValue get(const Position& pos) const override;
 
 private:
     Position m_r0;

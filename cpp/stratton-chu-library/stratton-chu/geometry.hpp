@@ -60,7 +60,7 @@ public:
     }
 
     template<typename CastType>
-    StaticVector<dim, CastType> cast()
+    StaticVector<dim, CastType> cast() const
     {
         StaticVector<dim, CastType> result;
         for (int i=0; i<dim; i++)
@@ -231,5 +231,31 @@ StaticVector<dim, T2> operator*(const T1& left, const StaticVector<dim, T2>& rig
     return right * left;
 }
 
+template<int dim, typename T>
+StaticVector<dim, T> vec_real(const StaticVector<dim, std::complex<T>>& vec)
+{
+    StaticVector<dim, T> result;
+    for (size_t i = 0; i < dim; i++)
+        result[i] = vec[i].real();
+    return result;
+}
+
+template<int dim, typename T>
+StaticVector<dim, T> vec_imag(const StaticVector<dim, std::complex<T>>& vec)
+{
+    StaticVector<dim, T> result;
+    for (size_t i = 0; i < dim; i++)
+        result[i] = vec[i].imag();
+    return result;
+}
+
+template<int dim, typename T>
+StaticVector<dim, double> vec_modulus(const StaticVector<dim, std::complex<T>>& vec)
+{
+    StaticVector<dim, T> result;
+    for (size_t i = 0; i < dim; i++)
+        result[i] = std::sqrt(std::norm(vec[i]));
+    return result;
+}
 
 #endif // GEOMETRY_HPP

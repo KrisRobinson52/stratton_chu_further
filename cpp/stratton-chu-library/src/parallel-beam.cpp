@@ -9,7 +9,7 @@ ParallelBeamZ::ParallelBeamZ(double lambda, FieldAmpl Ex, FieldAmpl Ey, double z
 {
 }
 
-FieldValue ParallelBeamZ::get(const Position& pos)
+FieldValue ParallelBeamZ::get(const Position& pos) const
 {
     double x = pos[0], y = pos[1], z = pos[2];
     Complex phase_mul = std::exp( - Complex(0.0, 1.0) * m_k *(z - m_z0));
@@ -33,7 +33,7 @@ ParallelBeamAlpha::ParallelBeamAlpha(double lambda, const Position& r0, const Ve
 {
 }
 
-FieldValue ParallelBeamAlpha::get(const Position& pos)
+FieldValue ParallelBeamAlpha::get(const Position& pos) const
 {
     Vector delta_r = (pos - m_r0);
     double x1 = delta_r * m_alpha1,

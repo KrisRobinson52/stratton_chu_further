@@ -9,7 +9,7 @@ ParabolicSurface::ParabolicSurface(const Position& r0, const Vector& alpha, cons
     m_n /= m_n.norm();
 }
 
-Position ParabolicSurface::point(const Vector2D& pos)
+Position ParabolicSurface::point(const Vector2D& pos) const
 {
     Position result;
     result = m_n;
@@ -18,7 +18,7 @@ Position ParabolicSurface::point(const Vector2D& pos)
     return result;
 }
 
-Vector ParabolicSurface::dS_over_dxdy(const Vector2D& pos)
+Vector ParabolicSurface::dS_over_dxdy(const Vector2D& pos) const
 {
     Vector r_x, r_y;
 

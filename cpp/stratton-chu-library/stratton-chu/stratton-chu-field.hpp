@@ -10,12 +10,12 @@ class StrattonChuReflection : public FieldBase
 public:
     StrattonChuReflection(ISurface& surf, IField& field, const SurfaceRegion& region);
 
-    FieldValue get(const Position& pos) override;
+    FieldValue get(const Position& pos) const override;
 
 private:
 
-    VectorComplex subint_E(double x, double y, const Position& r);
-    VectorComplex subint_B(double x, double y, const Position& r);
+    VectorComplex subint_E(double x, double y, const Position& r) const;
+    VectorComplex subint_B(double x, double y, const Position& r) const;
 
     ISurface& m_surf;
     IField& m_field;

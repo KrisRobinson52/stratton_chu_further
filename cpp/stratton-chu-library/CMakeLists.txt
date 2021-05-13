@@ -29,6 +29,7 @@ set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/src/utils.cpp
     ${PROJECT_SOURCE_DIR}/src/field.cpp
     ${PROJECT_SOURCE_DIR}/src/stratton-chu-field.cpp
+    ${PROJECT_SOURCE_DIR}/src/surface.cpp
     ${PROJECT_SOURCE_DIR}/src/plane-surface.cpp
     ${PROJECT_SOURCE_DIR}/src/parabolic-surface.cpp
     ${PROJECT_SOURCE_DIR}/src/csv-saver.cpp

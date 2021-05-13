@@ -2,6 +2,7 @@
 #define UTILS_HPP
 
 #include "stratton-chu/types.hpp"
+#include "stratton-chu/surface.hpp"
 
 #include <complex>
 #include <functional>

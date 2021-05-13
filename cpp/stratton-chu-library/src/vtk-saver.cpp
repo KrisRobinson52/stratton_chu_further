@@ -38,6 +38,11 @@ void VTKSurfaceSaver::set_point(size_t x_index, size_t y_index, Position p, doub
     m_data->SetTuple(glob_ind, point_data);
 }
 
+void VTKSurfaceSaver::set_point(size_t x_index, size_t y_index, Position p, Vector vec)
+{
+    set_point(x_index, y_index, p, vec[0], vec[1], vec[2]);
+}
+
 void VTKSurfaceSaver::save(const char* filename)
 {
     std::string full_name(filename);

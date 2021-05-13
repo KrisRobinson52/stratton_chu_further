@@ -10,7 +10,7 @@ StrattonChuReflection::StrattonChuReflection(ISurface& surf, IField& field, cons
 {
 }
 
-FieldValue StrattonChuReflection::get(const Position& pos)
+FieldValue StrattonChuReflection::get(const Position& pos) const
 {
     FieldValue result;
 /*
@@ -23,7 +23,7 @@ FieldValue StrattonChuReflection::get(const Position& pos)
     result.E = integrate_cubature(
         [this, &pos] (double x, double y) -> VectorComplex { return subint_E(x, y, pos); },
         m_region,
-        1e-2, 1e-2
+        1e-4, 1e-4
     );
     result.E *= 1 / (4 * M_PI);
 
@@ -32,7 +32,7 @@ FieldValue StrattonChuReflection::get(const Position& pos)
     return result;
 }
 
-VectorComplex StrattonChuReflection::subint_E(double x, double y, const Position& r)
+VectorComplex StrattonChuReflection::subint_E(double x, double y, const Position& r) const
 {
     Vector2D xy = {x, y};
     Vector r0 = m_surf.point(xy);
@@ -50,7 +50,7 @@ VectorComplex StrattonChuReflection::subint_E(double x, double y, const Position
     return first_term + second_term;
 }
 
-VectorComplex StrattonChuReflection::subint_B(double x, double y, const Position& r)
+VectorComplex StrattonChuReflection::subint_B(double x, double y, const Position& r) const
 {
     /*Vector2D xy = {x, y};
     Vector r0 = m_surf.point(xy);
