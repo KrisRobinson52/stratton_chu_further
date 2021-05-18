@@ -19,75 +19,35 @@ void plot_field_on_given_surface(
         const IField& field,
         const SurfaceRegion& region,
         int n_points,
-        const std::string& quantity_name, const std::string& filaname_prefix, const std::string& filename_suffix)
+        const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
 {
-    VTKSurfaceSaver vtk_saver(n_points, n_points, quantity_name.c_str());
-    for (int i = 0; i < n_points; i++)
-    {
-        for (int j = 0; j < n_points; j++)
-        {
-            Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
-            Position p = surface.point(xy);
-            FieldValue field_value = field.get(p);
-            vtk_saver.set_point(i, j, p, vec_modulus(field_value.E));
-        }
-    }
-    vtk_saver.save((filaname_prefix + filename_suffix).c_str());
-}
+    VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
+    VTKSurfaceSaver vtk_saver_n(n_points, n_points, (quantity_name + "_norm").c_str());
 
-void plot_focal_fields(double x_from, double x_to, double z_from, double z_to, int n_points,
-                       IField& field1, IField& field2, std::string filename_suffix)
-{
-    VTKSurfaceSaver vtk_saver_1r(n_points, n_points, "E1_real");
-    VTKSurfaceSaver vtk_saver_1i(n_points, n_points, "E1_imag");
-    VTKSurfaceSaver vtk_saver_1n(n_points, n_points, "E1_norm");
-    VTKSurfaceSaver vtk_saver_2r(n_points, n_points, "E2_real");
-    VTKSurfaceSaver vtk_saver_2i(n_points, n_points, "E2_imag");
-    VTKSurfaceSaver vtk_saver_2n(n_points, n_points, "E2_norm");
-    VTKSurfaceSaver vtk_saver_r(n_points, n_points, "E_real");
-    VTKSurfaceSaver vtk_saver_i(n_points, n_points, "E_imag");
-    VTKSurfaceSaver vtk_saver_n(n_points, n_points, "E_norm");
 
     tbb::parallel_for( int(0), n_points,
-        [x_from, x_to, z_from, z_to, n_points, &field1, &field2,
-         &vtk_saver_1r, &vtk_saver_1i, &vtk_saver_1n,
-         &vtk_saver_2r, &vtk_saver_2i, &vtk_saver_2n,
-         &vtk_saver_r,  &vtk_saver_i,  &vtk_saver_n]
+        [&region, n_points, &field, &surface,
+         &vtk_saver_r, &vtk_saver_i, &vtk_saver_n]
         (int i) {
             for (int j = 0; j < n_points; j++)
             {
-                Position p(x_from + (x_to - x_from) / (n_points-1) * i, 0.0, z_from + (z_to - z_from) / (n_points-1) * j);
-                FieldValue val1 = field1.get(p);
-                FieldValue val2 = field2.get(p);
-                FieldValue val = val1 + val2;
-
-                std::cout << "Point " << p.str() << ": E = " << val.E.str() << std::endl;
-
-                vtk_saver_1r.set_point(i, j, p, vec_real(val1.E));
-                vtk_saver_1i.set_point(i, j, p, vec_imag(val1.E));
-                vtk_saver_1n.set_point(i, j, p, vec_modulus(val1.E));
-
-                vtk_saver_2r.set_point(i, j, p, vec_real(val2.E));
-                vtk_saver_2i.set_point(i, j, p, vec_imag(val2.E));
-                vtk_saver_2n.set_point(i, j, p, vec_modulus(val2.E));
-
-                vtk_saver_r.set_point(i, j, p, vec_real(val.E));
-                vtk_saver_i.set_point(i, j, p, vec_imag(val.E));
-                vtk_saver_n.set_point(i, j, p, vec_modulus(val.E));
+                Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
+                Position p = surface.point(xy);
+                FieldValue field_value = field.get(p);
+                vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
+                vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
+                vtk_saver_n.set_point(i, j, p, vec_modulus(field_value.E));
             }
         }
     );
 
-    vtk_saver_1r.save(("field-E1-real-" + filename_suffix).c_str());
-    vtk_saver_1i.save(("field-E1-imag-" + filename_suffix).c_str());
-    vtk_saver_1n.save(("field-E1-norm-" + filename_suffix).c_str());
-    vtk_saver_2r.save(("field-E2-real-" + filename_suffix).c_str());
-    vtk_saver_2i.save(("field-E2-imag-" + filename_suffix).c_str());
-    vtk_saver_2n.save(("field-E2-norm-" + filename_suffix).c_str());
-    vtk_saver_r.save(("field-E-real-" + filename_suffix).c_str());
-    vtk_saver_i.save(("field-E-imag-" + filename_suffix).c_str());
-    vtk_saver_n.save(("field-E-norm-" + filename_suffix).c_str());
+    vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
+    vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
+    vtk_saver_n.save((filename_prefix + "_norm_" + filename_suffix).c_str());
 }
+
+
 
 void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi)
 {
@@ -99,14 +59,16 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi)
 
     std::cout << "\tFocal length = " << F << std::endl;
 
-    ParabolicSurface surface1(
+    Position p_focus = {0.0, 0.0, 0.0};
+
+    ParabolicSurface mirror1(
         {0.0, 0.0, -F},
         {1.0, 0.0, 0.0},
         {0.0, 1.0, 0.0},
         4.0*F, 4.0*F
     );
 
-    ParabolicSurface surface2(
+    ParabolicSurface mirror2(
         {0.0, 0.0, F},
         {-1.0, 0.0, 0.0},
         {0.0, 1.0, 0.0},
@@ -135,86 +97,53 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi)
     region2.y_min = 0.0 - beam_radius;
     region2.y_max = 0.0 + beam_radius;
 
-    StrattonChuReflection reflection1(surface1, beam1, region1);
-    StrattonChuReflection reflection2(surface2, beam2, region2);
+    StrattonChuReflection reflection1(mirror1, beam1, region1);
+    StrattonChuReflection reflection2(mirror2, beam2, region2);
 
-    int n_points = 301;
-    double z_from = 0.0 - 15 * lambda;
-    double z_to = 0.0 + 15 * lambda;
-    double x_from = 0.0 - 15 * lambda;
-    double x_to = 0.0 + 15 * lambda;
+    PlaneSurface focal_plane( p_focus, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0} );
+    SurfaceRegion focal_region;
+    focal_region.x_min = 0.0 - 15 * lambda;
+    focal_region.x_max = 0.0 + 15 * lambda;
+    focal_region.y_min = 0.0 - 15 * lambda;
+    focal_region.y_max = 0.0 + 15 * lambda;
+    int focal_points = 301;
+
+    Vector direction_vector = p_focus - mirror1.point({h, 0.0});
+    direction_vector /= direction_vector.norm();
+
+    PlaneSurface focal_plane_transversal( p_focus, {0.0, 1.0, 0.0}, Vector(0.0, 1.0, 0.0) % direction_vector );
+    SurfaceRegion focal_region_transversal;
+    focal_region_transversal.x_min = 0.0 - 10 * lambda;
+    focal_region_transversal.x_max = 0.0 + 10 * lambda;
+    focal_region_transversal.y_min = 0.0 - 10 * lambda;
+    focal_region_transversal.y_max = 0.0 + 10 * lambda;
+    int focal_points_transversal = 201;
+
 
     std::string filename_suffix = "alpha-";
     filename_suffix += std::to_string(int(alpha*100));
 
-    plot_focal_fields(x_from, x_to, z_from, z_to, n_points, reflection1, reflection2, filename_suffix);
+    plot_field_on_given_surface(mirror1, beam1 + beam2, region1, 100, "E", "mirror1", filename_suffix);
+    std::cout << "mirror1 plotted" << std::endl;
+    plot_field_on_given_surface(mirror2, beam1 + beam2, region2, 100, "E", "mirror2", filename_suffix);
+    std::cout << "mirror2 plotted" << std::endl;
 
-    SurfaceRegion reflector_region;
-    reflector_region.x_min = - h - beam_radius;
-    reflector_region.x_max = h + beam_radius;
-    reflector_region.y_min = 0.0 - beam_radius;
-    reflector_region.y_max = 0.0 + beam_radius;
+    plot_field_on_given_surface(focal_plane, reflection1, focal_region, focal_points, "E1", "longitudinal_E1", filename_suffix);
+    std::cout << "longitudinal_E1 plotted" << std::endl;
+    //plot_field_on_given_surface(focal_plane, reflection2, focal_region, focal_points, "E2", "longitudinal_E2", filename_suffix);
+    //std::cout << "longitudinal_E2 plotted" << std::endl;
 
-    plot_field_on_given_surface(surface1, beam1 + beam2, reflector_region, 100, "incident_field", "reflector-", filename_suffix);
+    plot_field_on_given_surface(focal_plane_transversal, reflection1, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
+    std::cout << "transversal_E1 plotted" << std::endl;
+    //plot_field_on_given_surface(focal_plane_transversal, reflection2, focal_region_transversal, focal_points_transversal, "E2", "transversal_E2", filename_suffix);
+    //std::cout << "transversal_E2 plotted" << std::endl;
+
 }
 
-void plot_two_beams_by_given_h_and_F(double h, double F)
-{
-    std::cout << "Plotting for h = " << h << std::endl;
-
-    ParabolicSurface surface(
-        {0.0, 0.0, -F},
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        4.0*F, 4.0*F
-    );
-
-    ParallelBeamZ beam1(
-        lambda,
-        //[h, beam_radius](double x, double y) { return exp( - (sqr(x - h) + sqr(y)) / sqr(beam_radius/2) / 2); },
-        [h](double x, double y) { return sqr(x - h) + sqr(y) <= sqr(beam_radius) ? 1.0 : 0.0; },
-        [](double, double) { return 0.0; },
-        0.0
-    );
-
-    ParallelBeamZ beam2(
-        lambda,
-        //[h, beam_radius](double x, double y) { return exp( - (sqr(x - h) + sqr(y)) / sqr(beam_radius/2) / 2); },
-        [h](double x, double y) { return sqr(x + h) + sqr(y) <= sqr(beam_radius) ? -1.0 : 0.0; },
-        [](double, double) { return 0.0; },
-        0.0
-    );
-
-    SurfaceRegion region1;
-    region1.x_min = h - beam_radius;
-    region1.x_max = h + beam_radius;
-    region1.y_min = 0.0 - beam_radius;
-    region1.y_max = 0.0 + beam_radius;
-
-    SurfaceRegion region2;
-    region2.x_min = - h - beam_radius;
-    region2.x_max = - h + beam_radius;
-    region2.y_min = 0.0 - beam_radius;
-    region2.y_max = 0.0 + beam_radius;
-
-    StrattonChuReflection reflection1(surface, beam1, region1);
-    StrattonChuReflection reflection2(surface, beam2, region2);
-
-    int n_points = 201;
-    double z_from = 0.0 - 15 * lambda;
-    double z_to = 0.0 + 15 * lambda;
-    double x_from = 0.0 - 15 * lambda;
-    double x_to = 0.0 + 15 * lambda;
-
-    std::string filename_suffix = "h-";
-    filename_suffix += std::to_string(int(h*10));
-
-    plot_focal_fields(x_from, x_to, z_from, z_to, n_points, reflection1, reflection2, filename_suffix);
-}
 
 int main()
 {
-    //tbb::task_scheduler_init init(1);
+    tbb::task_scheduler_init init(8);
 
     //const double F = 20.0; // cm
     const double phi = M_PI / 3;
@@ -225,7 +154,9 @@ int main()
     double alpha_min = 0.0;
     double alpha_max = M_PI - phi;
 
-    for(double alpha = alpha_min; alpha < alpha_max; alpha += M_PI / 10)
+    //plot_two_beams_by_given_alpha_and_phi(M_PI_4, phi);
+
+    for(double alpha = alpha_min; alpha < alpha_max; alpha += M_PI / 30)
     {
         try
         {

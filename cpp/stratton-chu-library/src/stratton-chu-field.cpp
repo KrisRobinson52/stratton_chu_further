@@ -22,9 +22,7 @@ FieldValue StrattonChuReflection::get(const Position& pos) const
 
     result.E = integrate_cubature(
         [this, &pos] (double x, double y) -> VectorComplex { return subint_E(x, y, pos); },
-        m_region,
-        1e-4, 1e-4
-    );
+        m_region, 1e-4, 1e-4);
     result.E *= 1 / (4 * M_PI);
 
     // @TODO Calculate B
