@@ -11,6 +11,8 @@ public:
 
     Position point(const Vector2D& pos) const override;
     Vector dS_over_dxdy(const Vector2D& pos) const override;
+    Vector tau1(const Vector2D& pos) const override;
+    Vector tau2(const Vector2D& pos) const override;
 
 private:
     Position m_r0;

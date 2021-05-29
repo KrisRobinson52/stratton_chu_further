@@ -45,7 +45,7 @@ VectorComplex StrattonChuReflection::subint_E(double x, double y, const Position
     VectorComplex second_term = green.gradient();
     second_term *= 2.0 * (N * field.E);
 
-    return first_term + second_term;
+    return first_term - second_term;
 }
 
 VectorComplex StrattonChuReflection::subint_B(double x, double y, const Position& r) const

@@ -46,3 +46,31 @@ TEST(GetFbyBeamParametersTest, OperatingByAlpha)
     }*/
     //std::cout << "]" << std::endl;
 }
+
+TEST(MaxFieldTest, Linear)
+{
+    VectorComplex E(1.0, 2.0, 3.0);
+    E *= std::exp( Complex(0.0, 1.0) * 0.6);
+    Vector res = max_field(E);
+    ASSERT_NEAR(res[0], 1.0, 1e-4);
+    ASSERT_NEAR(res[1], 2.0, 1e-4);
+    ASSERT_NEAR(res[2], 3.0, 1e-4);
+}
+
+TEST(MaxFieldTest, Elliptic)
+{
+    VectorComplex E(1.0, 2.0, 0.0);
+    E[1] *= std::exp( Complex(0.0, 1.0) * M_PI_2);
+    Vector res = max_field(E);
+    ASSERT_NEAR(res[0], 0.0, 1e-4);
+    ASSERT_NEAR(res[1], 2.0, 1e-4);
+    ASSERT_NEAR(res[2], 0.0, 1e-4);
+}
+
+TEST(MaxFieldTest, Circular)
+{
+    VectorComplex E(2.0, 2.0, 0.0);
+    E[1] *= std::exp( Complex(0.0, 1.0) * M_PI_2);
+    Vector res = max_field(E);
+    ASSERT_NEAR(res.norm(), 2.0, 1e-4);
+}

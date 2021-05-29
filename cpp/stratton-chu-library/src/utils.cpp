@@ -159,3 +159,20 @@ double get_p_by_beam_parameters_alpha(double alpha, double F)
         return 2 * F * (1 - cos(alpha)) / sin(alpha);
     }
 }
+
+Vector max_field(VectorComplex vec)
+{
+    Vector ampls = vec_modulus(vec);
+    ampls ^= 2.0; ampls /= 2.0;
+    Vector phases = vec_phases(vec);
+    phases *= 2.0;
+
+    double y, x;
+    y = ampls[0] * sin(phases[0]) + ampls[1] * sin(phases[1]) + ampls[2] * sin(phases[2]);
+    x = ampls[0] * cos(phases[0]) + ampls[1] * cos(phases[1]) + ampls[2] * cos(phases[2]);;
+    double psi = std::atan2(y, x);
+
+    vec *= std::exp( - Complex(0.0, 1.0) * psi / 2.0);
+    return vec_real(vec);
+}
+

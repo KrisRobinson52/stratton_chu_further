@@ -67,4 +67,9 @@ double get_F_by_beam_parameters_alpha(double alpha, double phi, double d);
 
 double get_p_by_beam_parameters_alpha(double alpha, double F);
 
+/**
+ * Using the vector of complex amplitudes, gets the real vector of the maximum field for all times
+ */
+Vector max_field(VectorComplex vec);
+
 #endif // UTILS_HPP

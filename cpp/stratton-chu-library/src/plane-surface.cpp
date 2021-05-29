@@ -18,3 +18,13 @@ Vector PlaneSurface::dS_over_dxdy(const Vector2D&) const
 {
     return m_dS_over_dxdy_const;
 }
+
+Vector PlaneSurface::tau1(const Vector2D& pos) const
+{
+    return m_alpha;
+}
+
+Vector PlaneSurface::tau2(const Vector2D& pos) const
+{
+    return m_beta;
+}

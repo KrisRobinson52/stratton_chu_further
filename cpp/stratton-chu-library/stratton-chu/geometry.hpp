@@ -145,6 +145,13 @@ public:
         return *this;
     }
 
+    VectorType& operator^=(Type right)
+    {
+        for (int i=0; i<dim; ++i)
+            x[i] = std::pow(x[i], right);
+        return *this;
+    }
+
     bool operator==(const VectorType& right) const
     {
         for (int i = 0; i<dim; ++i)
@@ -169,7 +176,8 @@ public:
     /**
      * @brief Scalar product
      */
-    Type operator*(const VectorType& right) const
+    template<typename RightType>
+    Type operator*(const StaticVector<dim, RightType>& right) const
     {
         Type result = 0;
         for (int i=0; i<dim; i++)
@@ -256,6 +264,21 @@ StaticVector<dim, double> vec_modulus(const StaticVector<dim, std::complex<T>>& 
     for (size_t i = 0; i < dim; i++)
         result[i] = std::sqrt(std::norm(vec[i]));
     return result;
+}
+
+template<int dim, typename T>
+StaticVector<dim, double> vec_phases(const StaticVector<dim, std::complex<T>>& vec)
+{
+    StaticVector<dim, T> result;
+    for (size_t i = 0; i < dim; i++)
+        result[i] = std::arg(vec[i]);
+    return result;
+}
+
+template<int dim, typename T>
+T projection(const StaticVector<dim, T>& vec, const StaticVector<dim, double>& axis)
+{
+    return vec * axis / axis.norm();
 }
 
 #endif // GEOMETRY_HPP

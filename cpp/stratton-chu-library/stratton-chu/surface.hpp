@@ -8,6 +8,8 @@ class ISurface
 public:
     virtual Position point(const Vector2D& pos) const = 0;
     virtual Vector dS_over_dxdy(const Vector2D& pos) const = 0;
+    virtual Vector tau1(const Vector2D& pos) const = 0;
+    virtual Vector tau2(const Vector2D& pos) const = 0;
     virtual ~ISurface() = default;
 };
 

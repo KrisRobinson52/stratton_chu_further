@@ -23,28 +23,43 @@ void plot_field_on_given_surface(
 {
     VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
     VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
-    VTKSurfaceSaver vtk_saver_n(n_points, n_points, (quantity_name + "_norm").c_str());
+    VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
 
+    // В тау-тау-эн;
+    VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
 
     tbb::parallel_for( int(0), n_points,
         [&region, n_points, &field, &surface,
-         &vtk_saver_r, &vtk_saver_i, &vtk_saver_n]
+         &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m]
         (int i) {
             for (int j = 0; j < n_points; j++)
             {
                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
                 Position p = surface.point(xy);
                 FieldValue field_value = field.get(p);
+
                 vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
                 vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
-                vtk_saver_n.set_point(i, j, p, vec_modulus(field_value.E));
+                vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
+
+                FieldValue field_rotated;
+                field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
+                field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
+                field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
+
+                vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
+                vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
             }
         }
     );
 
     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
-    vtk_saver_n.save((filename_prefix + "_norm_" + filename_suffix).c_str());
+    vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
+
+    vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
+    vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
 }
 
 
@@ -156,7 +171,7 @@ int main()
 
     //plot_two_beams_by_given_alpha_and_phi(M_PI_4, phi);
 
-    for(double alpha = alpha_min; alpha < alpha_max; alpha += M_PI / 30)
+    for(double alpha = alpha_min; alpha < alpha_max; alpha += M_PI / 10)
     {
         try
         {

@@ -20,15 +20,27 @@ Position ParabolicSurface::point(const Vector2D& pos) const
 
 Vector ParabolicSurface::dS_over_dxdy(const Vector2D& pos) const
 {
-    Vector r_x, r_y;
+    return tau1(pos) % tau2(pos);
+}
+
+Vector ParabolicSurface::tau1(const Vector2D& pos) const
+{
+    Vector r_x;
 
     r_x = m_n;
     r_x *= 2 * pos[0] / m_a;
     r_x += m_alpha;
 
+    return r_x;
+}
+
+Vector ParabolicSurface::tau2(const Vector2D& pos) const
+{
+    Vector r_y;
+
     r_y = m_n;
     r_y *= 2 * pos[1] / m_b;
     r_y += m_beta;
 
-    return r_x % r_y;
+    return r_y;
 }
