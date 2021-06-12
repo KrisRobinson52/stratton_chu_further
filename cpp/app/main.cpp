@@ -1,5 +1,6 @@
 #include "stratton-chu/plane-surface.hpp"
 #include "stratton-chu/parabolic-surface.hpp"
+#include "stratton-chu/distorted-surface.hpp"
 #include "stratton-chu/parallel-beam.hpp"
 #include "stratton-chu/stratton-chu-field.hpp"
 #include "stratton-chu/utils.hpp"
@@ -10,7 +11,7 @@
 #include <tbb/tbb.h>
 #include <iostream>
 
-const double lambda = 0.000091; // 910 nm
+const double lambda = 0.0000091; // 910 nm
 const double beam_radius = 10; // cm
 const double beam_width = 2 * beam_radius; // cm
 
@@ -38,6 +39,7 @@ void plot_field_on_given_surface(
                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
                 Position p = surface.point(xy);
                 FieldValue field_value = field.get(p);
+                //std::cout << "point ready" << std::endl;
 
                 vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
                 vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
@@ -64,15 +66,16 @@ void plot_field_on_given_surface(
 
 
 
-void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi)
+void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool plot_distortion = true,
+                                           double distortion_ampl = 0, double distortion_k = 2*M_PI/lambda)
 {
-    std::cout << "Plotting for alpha = " << alpha;
+    std::cout << "Plotting for alpha = " << alpha << "\t phi = " << phi;
 
     double F = get_F_by_beam_parameters_alpha(alpha, phi, beam_width);
-    double p = get_p_by_beam_parameters_alpha(alpha, F); // impact parameter
+    double p = get_p_by_beam_parameters_alpha(alpha, F); // impact parameter по нижней границе
     double h = p + beam_radius;
 
-    std::cout << "\tFocal length = " << F << std::endl;
+    std::cout << "\t Focal length = " << F << "\t k = " << distortion_k << "\t ampl = " << distortion_ampl << std::endl;
 
     Position p_focus = {0.0, 0.0, 0.0};
 
@@ -90,16 +93,6 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi)
         4.0*F, 4.0*F
     );
 
-    ParallelBeamAlpha beam1(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, -1.0, 0.0},
-                            [h](double x1, double x2) { return exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(beam_radius/4)) ); },
-                            //[h](double x1, double x2) { return sqr(x1 - h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
-                            [](double, double) { return 0.0; });
-
-    ParallelBeamAlpha beam2(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
-                            [h](double x1, double x2) { return exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(beam_radius/4)) ); },
-                            //[h](double x1, double x2) { return sqr(x1 + h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
-                            [](double, double) { return 0.0; });
-
     SurfaceRegion region1;
     region1.x_min = h - beam_radius;
     region1.x_max = h + beam_radius;
@@ -112,15 +105,52 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi)
     region2.y_min = 0.0 - beam_radius;
     region2.y_max = 0.0 + beam_radius;
 
+    Vector distortion_direction = mirror1.dS_over_dxdy({h, 0.0});
+    distortion_direction /= distortion_direction.norm();
+
+    double dist_kx =     distortion_k / sqrt(5);
+    double dist_ky = 2 * distortion_k / sqrt(5);
+//    double dist_kx = 0;
+//    double dist_ky = 0;
+    dist_kx /= distortion_direction[2];
+
+    std::vector<SurfaceDistortion::DistortionHarmonic> harmonics;
+
+    SurfaceDistortion::DistortionHarmonic h1 = { .ampl = distortion_ampl, .kx = dist_kx, .ky = dist_ky};
+//    SurfaceDistortion::DistortionHarmonic h2 = {distortion_ampl, dist_kx*1.3, dist_ky*0.09};
+//    SurfaceDistortion::DistortionHarmonic h3 = {distortion_ampl, dist_kx*3.2, dist_ky*0.7};
+
+    harmonics.push_back(h1);
+//    harmonics.push_back(h2);
+//    harmonics.push_back(h3);
+
+    SurfaceDistortion mirror1dist(mirror1, distortion_direction, harmonics);
+
+    ParallelBeamAlpha beam1(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, -1.0, 0.0},
+                            [h](double x1, double x2) { return exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(beam_radius/4)) ); },
+                            //[h](double x1, double x2) { return sqr(x1 - h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
+                            [](double, double) { return 0.0; });
+
+    ParallelBeamAlpha beam2(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
+                            [h](double x1, double x2) { return exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(beam_radius/4)) ); },
+                            //[h](double x1, double x2) { return sqr(x1 + h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
+                            [](double, double) { return 0.0; });
+
     StrattonChuReflection reflection1(mirror1, beam1, region1);
-    StrattonChuReflection reflection2(mirror2, beam2, region2);
+    StrattonChuReflection reflection1dist(mirror1dist, beam1, region1);
+    //StrattonChuReflection reflection2(mirror2, beam2, region2);
 
     PlaneSurface focal_plane( p_focus, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0} );
     SurfaceRegion focal_region;
-    focal_region.x_min = 0.0 - 15 * lambda;
-    focal_region.x_max = 0.0 + 15 * lambda;
-    focal_region.y_min = 0.0 - 15 * lambda;
-    focal_region.y_max = 0.0 + 15 * lambda;
+//    focal_region.x_min = 0.0 - 12 * lambda;
+//    focal_region.x_max = 0.0 + 12 * lambda;
+//    focal_region.y_min = 0.0 - 12 * lambda;
+//    focal_region.y_max = 0.0 + 12 * lambda;
+//    int focal_points = 301;
+    focal_region.x_min = 0.0 - 12 * lambda;
+    focal_region.x_max = 0.0 + 12 * lambda;
+    focal_region.y_min = 0.0 - 12 * lambda;
+    focal_region.y_max = 0.0 + 12 * lambda;
     int focal_points = 301;
 
     Vector direction_vector = p_focus - mirror1.point({h, 0.0});
@@ -135,30 +165,43 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi)
     int focal_points_transversal = 201;
 
 
-    std::string filename_suffix = "alpha-";
-    filename_suffix += std::to_string(int(alpha*100));
+    //std::string filename_suffix = "alpha-";
+    //filename_suffix += std::to_string(int(alpha*100));
+    //std::string filename_suffix = "k-";
+    //filename_suffix += std::to_string(int(distortion_k*10));
+    std::string filename_suffix = "ampl-";
+    filename_suffix += std::to_string(int(distortion_ampl*1.0e7));
 
     plot_field_on_given_surface(mirror1, beam1 + beam2, region1, 100, "E", "mirror1", filename_suffix);
     std::cout << "mirror1 plotted" << std::endl;
-    plot_field_on_given_surface(mirror2, beam1 + beam2, region2, 100, "E", "mirror2", filename_suffix);
-    std::cout << "mirror2 plotted" << std::endl;
+    plot_field_on_given_surface(mirror1dist, beam1 + beam2, region1, 100, "E", "mirror1_dist", filename_suffix);
+    std::cout << "mirror1dist plotted" << std::endl;
+    //plot_field_on_given_surface(mirror2, beam1 + beam2, region2, 100, "E", "mirror2", filename_suffix);
+    //std::cout << "mirror2 plotted" << std::endl;
 
-    plot_field_on_given_surface(focal_plane, reflection1, focal_region, focal_points, "E1", "longitudinal_E1", filename_suffix);
-    std::cout << "longitudinal_E1 plotted" << std::endl;
+    //plot_field_on_given_surface(focal_plane, reflection1, focal_region, focal_points, "E1", "longitudinal_E1", filename_suffix);
+    //std::cout << "longitudinal_E1 plotted" << std::endl;
+    plot_field_on_given_surface(focal_plane, reflection1dist, focal_region, focal_points, "E1", "longitudinal_E1_dist", filename_suffix);
+    std::cout << "longitudinal_E1_dist plotted" << std::endl;
+
     //plot_field_on_given_surface(focal_plane, reflection2, focal_region, focal_points, "E2", "longitudinal_E2", filename_suffix);
     //std::cout << "longitudinal_E2 plotted" << std::endl;
 
-    plot_field_on_given_surface(focal_plane_transversal, reflection1, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
-    std::cout << "transversal_E1 plotted" << std::endl;
+    //plot_field_on_given_surface(focal_plane_transversal, reflection1, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
+    //std::cout << "transversal_E1 plotted" << std::endl;
+    plot_field_on_given_surface(focal_plane_transversal, reflection1dist, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1_dist", filename_suffix);
+    std::cout << "transversal_E1_dist plotted" << std::endl;
     //plot_field_on_given_surface(focal_plane_transversal, reflection2, focal_region_transversal, focal_points_transversal, "E2", "transversal_E2", filename_suffix);
     //std::cout << "transversal_E2 plotted" << std::endl;
+
+
 
 }
 
 
 int main()
 {
-    tbb::task_scheduler_init init(8);
+    tbb::task_scheduler_init init(6);
 
     //const double F = 20.0; // cm
     const double phi = M_PI / 3;
@@ -166,21 +209,30 @@ int main()
     std::cout << "Running stratton-chu computation" << std::endl;
     //int steps_count = 20;
 
-    double alpha_min = 0.0;
-    double alpha_max = M_PI - phi;
+    //double alpha_min = 0.0;
+    //double alpha_max = M_PI - phi;
 
-    //plot_two_beams_by_given_alpha_and_phi(M_PI_4, phi);
+    double ampl = 0.1 * lambda;
+//    double k = 2 * M_PI / (beam_radius / 10);
+//    double k = 2 * M_PI / (100 * lambda);
 
-    for(double alpha = alpha_min; alpha < alpha_max; alpha += M_PI / 10)
+//    plot_two_beams_by_given_alpha_and_phi(M_PI_4, phi, 1, ampl, k);
+
+    double k = 2 * M_PI / (beam_radius/2);
+
+    for(double i = 1; i < 1000; i++)
     {
-        try
+        plot_two_beams_by_given_alpha_and_phi(M_PI_4, phi, 1, ampl, k);
+        ampl += 0.1 * lambda;
+
+        /*try
         {
-            plot_two_beams_by_given_alpha_and_phi(alpha, phi);
+            plot_two_beams_by_given_alpha_and_phi(M_PI_4, phi, 1, ampl, k);
         }
         catch(const std::domain_error& ex)
         {
-            std::cout << "Exception for alpha = " << alpha << ": " << ex.what() << std::endl;
-        }
+            std::cout << "Exception for k = " << k << ": " << ex.what() << std::endl;
+        }*/
     }
 
     return 0;

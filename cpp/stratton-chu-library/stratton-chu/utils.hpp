@@ -13,6 +13,8 @@ public:
     GreenFunc(const Position& r, const Position& r0, double k);
 
     const Complex& value();
+
+    /// dG/dr0
     const VectorComplex& gradient();
 
 private:

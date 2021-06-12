@@ -17,11 +17,11 @@ Position ParabolicSurface::point(const Vector2D& pos) const
     result += m_r0 + m_alpha * pos[0] + m_beta * pos[1];
     return result;
 }
-
+/*
 Vector ParabolicSurface::dS_over_dxdy(const Vector2D& pos) const
 {
     return tau1(pos) % tau2(pos);
-}
+}*/
 
 Vector ParabolicSurface::tau1(const Vector2D& pos) const
 {

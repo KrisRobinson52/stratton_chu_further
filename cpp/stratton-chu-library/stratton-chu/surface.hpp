@@ -13,6 +13,15 @@ public:
     virtual ~ISurface() = default;
 };
 
+class SurfaceBase : public ISurface
+{
+public:
+    Vector dS_over_dxdy(const Vector2D& pos) const override
+    {
+        return tau1(pos) % tau2(pos);
+    }
+};
+
 struct SurfaceRegion
 {
     SurfaceRegion(double x_min = -1.0, double x_max = 1.0, double y_min = -1.0, double y_max = 1.0) :
