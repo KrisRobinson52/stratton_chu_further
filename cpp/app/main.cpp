@@ -15,6 +15,32 @@ const double lambda = 0.0000091; // 910 nm
 const double beam_radius = 10; // cm
 const double beam_width = 2 * beam_radius; // cm
 
+std::vector<SurfaceDistortionLegendre::DistortionPolinom> make_distortion_polynoms(double amp)
+{
+    std::vector<double> angles = {
+        5.285787050983075,
+        3.7315163082383522,
+        0.4840372224686504,
+        5.146130391061815,
+        3.127904939599717,
+        0.3754736274237447,
+        5.7929281053760855,
+        1.8623574557673694,
+        3.902414951488807,
+        4.844839876845448
+    };
+
+    std::vector<SurfaceDistortionLegendre::DistortionPolinom> result;
+
+    for (size_t i = 0; i < angles.size(); i++)
+    {
+        result.push_back(SurfaceDistortionLegendre::DistortionPolinom(amp, angles[i], i*3+1));
+    }
+
+    return result;
+}
+
+
 void plot_field_on_given_surface(
         const ISurface& surface,
         const IField& field,
@@ -129,12 +155,35 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool plot_d
     ParallelBeamAlpha beam1(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, -1.0, 0.0},
                             [h](double x1, double x2) { return exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(beam_radius/4)) ); },
                             //[h](double x1, double x2) { return sqr(x1 - h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
+                            //[h](double x1, double x2) { return smoothed(sqrt(sqr(x1 - h) + sqr(x2)), beam_radius); },
                             [](double, double) { return 0.0; });
 
     ParallelBeamAlpha beam2(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
                             [h](double x1, double x2) { return exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(beam_radius/4)) ); },
                             //[h](double x1, double x2) { return sqr(x1 + h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
+                            //[h](double x1, double x2) { return smoothed(sqrt(sqr(x1 + h) + sqr(x2)), beam_radius); },
                             [](double, double) { return 0.0; });
+
+    double mirror_radius = 3 * sigma;
+    //double mirror_radius = beam_radius;
+    //double mirror_radius = beam_radius + 0.1;
+
+    SurfaceRegion region1;
+    region1.x_min = h - mirror_radius;
+    region1.x_max = h + mirror_radius;
+    region1.y_min = 0.0 - mirror_radius;
+    region1.y_max = 0.0 + mirror_radius;
+
+    SurfaceRegion region2;
+    region2.x_min = h - mirror_radius;
+    region2.x_max = h + mirror_radius;
+    region2.y_min = 0.0 - mirror_radius;
+    region2.y_max = 0.0 + mirror_radius;
+
+    std::vector<SurfaceDistortionLegendre::DistortionPolinom> polinoms;
+
+    SurfaceDistortionLegendre mirror1_legendre(mirror1, distortion_direction, mirror_radius * sqrt(2), Vector2D(h, 0.0), make_distortion_polynoms(0.5));
+
 
     StrattonChuReflection reflection1(mirror1, beam1, region1);
     StrattonChuReflection reflection1dist(mirror1dist, beam1, region1);

@@ -74,3 +74,26 @@ TEST(MaxFieldTest, Circular)
     Vector res = max_field(E);
     ASSERT_NEAR(res.norm(), 2.0, 1e-4);
 }
+
+TEST(GreenFunc, Differentiating)
+{
+    double epsilon = 1e-8;
+    Position r(-100.0, 100.0, 200.0);
+    double k = 1000;
+    GreenFunc gf(r, Position(1.0, 4.0, 9.0), k);
+    auto val = gf.value();
+    auto grad = gf.gradient();
+
+    GreenFunc gfx(r, Position(1.0+epsilon, 4.0, 9.0), k);
+    GreenFunc gfy(r, Position(1.0, 4.0+epsilon, 9.0), k);
+    GreenFunc gfz(r, Position(1.0, 4.0, 9.0+epsilon), k);
+
+    double delta_x = sqrt(std::norm(grad[0] - (gfx.value() - val) / epsilon));
+    double delta_y = sqrt(std::norm(grad[1] - (gfy.value() - val) / epsilon));
+    double delta_z = sqrt(std::norm(grad[2] - (gfz.value() - val) / epsilon));
+
+    ASSERT_LE(delta_x, 1e-4);
+    ASSERT_LE(delta_y, 1e-4);
+    ASSERT_LE(delta_z, 1e-4);
+
+}
