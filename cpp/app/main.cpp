@@ -40,7 +40,6 @@ std::vector<SurfaceDistortionLegendre::DistortionPolinom> make_distortion_polyno
     return result;
 }
 
-
 void plot_field_on_given_surface(
         const ISurface& surface,
         const IField& field,
@@ -90,9 +89,7 @@ void plot_field_on_given_surface(
     vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
 }
 
-
-
-void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool plot_distortion = true,
+void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool two_beams = false, bool plot_distortion = false,
                                            double distortion_ampl = 0, double distortion_k = 2*M_PI/lambda)
 {
     std::cout << "Plotting for alpha = " << alpha << "\t phi = " << phi;
@@ -101,7 +98,9 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool plot_d
     double p = get_p_by_beam_parameters_alpha(alpha, F); // impact parameter по нижней границе
     double h = p + beam_radius;
 
-    std::cout << "\t Focal length = " << F << "\t k = " << distortion_k << "\t ampl = " << distortion_ampl << std::endl;
+    std::cout << "\t Focal length = " << F;
+    if (plot_distortion) {std::cout << "\t k = " << distortion_k << "\t ampl = " << distortion_ampl;}
+    std::cout << std::endl;
 
     Position p_focus = {0.0, 0.0, 0.0};
 
@@ -119,25 +118,13 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool plot_d
         4.0*F, 4.0*F
     );
 
-    SurfaceRegion region1;
-    region1.x_min = h - beam_radius;
-    region1.x_max = h + beam_radius;
-    region1.y_min = 0.0 - beam_radius;
-    region1.y_max = 0.0 + beam_radius;
-
-    SurfaceRegion region2;
-    region2.x_min = h - beam_radius;
-    region2.x_max = h + beam_radius;
-    region2.y_min = 0.0 - beam_radius;
-    region2.y_max = 0.0 + beam_radius;
+    PlaneSurface beam_profile({0.0, 0.0, 30.0}, {1.0, 0.0, 0.0}, {0.0, -1.0, 0.0});
 
     Vector distortion_direction = mirror1.dS_over_dxdy({h, 0.0});
     distortion_direction /= distortion_direction.norm();
 
     double dist_kx =     distortion_k / sqrt(5);
     double dist_ky = 2 * distortion_k / sqrt(5);
-//    double dist_kx = 0;
-//    double dist_ky = 0;
     dist_kx /= distortion_direction[2];
 
     std::vector<SurfaceDistortion::DistortionHarmonic> harmonics;
@@ -145,21 +132,24 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool plot_d
     SurfaceDistortion::DistortionHarmonic h1 = { .ampl = distortion_ampl, .kx = dist_kx, .ky = dist_ky};
 //    SurfaceDistortion::DistortionHarmonic h2 = {distortion_ampl, dist_kx*1.3, dist_ky*0.09};
 //    SurfaceDistortion::DistortionHarmonic h3 = {distortion_ampl, dist_kx*3.2, dist_ky*0.7};
-
     harmonics.push_back(h1);
 //    harmonics.push_back(h2);
 //    harmonics.push_back(h3);
 
     SurfaceDistortion mirror1dist(mirror1, distortion_direction, harmonics);
 
+    // Параметры для гауссова пучка, той же дисперсии, что и _|¯¯¯|_, и чтобы в нём энергии как в _|¯¯¯|_
+    double sigma = beam_radius / 2;
+    double gauss_A = 2;
+
     ParallelBeamAlpha beam1(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, -1.0, 0.0},
-                            [h](double x1, double x2) { return exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(beam_radius/4)) ); },
+                            [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(sigma)) ); },
                             //[h](double x1, double x2) { return sqr(x1 - h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
                             //[h](double x1, double x2) { return smoothed(sqrt(sqr(x1 - h) + sqr(x2)), beam_radius); },
                             [](double, double) { return 0.0; });
 
     ParallelBeamAlpha beam2(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
-                            [h](double x1, double x2) { return exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(beam_radius/4)) ); },
+                            [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(sigma)) ); },
                             //[h](double x1, double x2) { return sqr(x1 + h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
                             //[h](double x1, double x2) { return smoothed(sqrt(sqr(x1 + h) + sqr(x2)), beam_radius); },
                             [](double, double) { return 0.0; });
@@ -174,28 +164,24 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool plot_d
     region1.y_min = 0.0 - mirror_radius;
     region1.y_max = 0.0 + mirror_radius;
 
-    SurfaceRegion region2;
+    SurfaceRegion region2; //           Почему не минус h ???
     region2.x_min = h - mirror_radius;
     region2.x_max = h + mirror_radius;
     region2.y_min = 0.0 - mirror_radius;
     region2.y_max = 0.0 + mirror_radius;
 
-    std::vector<SurfaceDistortionLegendre::DistortionPolinom> polinoms;
-
-    SurfaceDistortionLegendre mirror1_legendre(mirror1, distortion_direction, mirror_radius * sqrt(2), Vector2D(h, 0.0), make_distortion_polynoms(0.5));
-
+    SurfaceRegion region_profile;
+    region_profile.x_min = h - 1.1 * mirror_radius;
+    region_profile.x_max = h + 1.1 * mirror_radius;
+    region_profile.y_min = 0.0 - 1.1 * mirror_radius;
+    region_profile.y_max = 0.0 + 1.1 * mirror_radius;
 
     StrattonChuReflection reflection1(mirror1, beam1, region1);
     StrattonChuReflection reflection1dist(mirror1dist, beam1, region1);
-    //StrattonChuReflection reflection2(mirror2, beam2, region2);
+    StrattonChuReflection reflection2(mirror2, beam2, region2);
 
     PlaneSurface focal_plane( p_focus, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0} );
     SurfaceRegion focal_region;
-//    focal_region.x_min = 0.0 - 12 * lambda;
-//    focal_region.x_max = 0.0 + 12 * lambda;
-//    focal_region.y_min = 0.0 - 12 * lambda;
-//    focal_region.y_max = 0.0 + 12 * lambda;
-//    int focal_points = 301;
     focal_region.x_min = 0.0 - 12 * lambda;
     focal_region.x_max = 0.0 + 12 * lambda;
     focal_region.y_min = 0.0 - 12 * lambda;
@@ -214,74 +200,91 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool plot_d
     int focal_points_transversal = 201;
 
 
-    //std::string filename_suffix = "alpha-";
-    //filename_suffix += std::to_string(int(alpha*100));
+    std::string filename_suffix = "alpha-";
+    filename_suffix += std::to_string(int(alpha*100));
     //std::string filename_suffix = "k-";
     //filename_suffix += std::to_string(int(distortion_k*10));
-    std::string filename_suffix = "ampl-";
-    filename_suffix += std::to_string(int(distortion_ampl*1.0e7));
+    //std::string filename_suffix = "ampl-";
+    //filename_suffix += std::to_string(int(distortion_ampl*1.0e7));
 
-    plot_field_on_given_surface(mirror1, beam1 + beam2, region1, 100, "E", "mirror1", filename_suffix);
+
+    plot_field_on_given_surface(beam_profile, beam1, region_profile, 300, "E", "beam_profile", filename_suffix);
+    std::cout << "beam profile plotted" << std::endl;
+
+    plot_field_on_given_surface(mirror1, beam1, region1, 100, "E", "mirror1", filename_suffix);
     std::cout << "mirror1 plotted" << std::endl;
-    plot_field_on_given_surface(mirror1dist, beam1 + beam2, region1, 100, "E", "mirror1_dist", filename_suffix);
-    std::cout << "mirror1dist plotted" << std::endl;
-    //plot_field_on_given_surface(mirror2, beam1 + beam2, region2, 100, "E", "mirror2", filename_suffix);
-    //std::cout << "mirror2 plotted" << std::endl;
+    if (plot_distortion)
+    {
+        plot_field_on_given_surface(mirror1dist, beam1, region1, 100, "E", "mirror1_dist", filename_suffix);
+        std::cout << "mirror1dist plotted" << std::endl;
+    }
+    if (two_beams)
+    {
+        plot_field_on_given_surface(mirror2, beam2, region2, 100, "E", "mirror2", filename_suffix);
+        std::cout << "mirror2 plotted" << std::endl;
+    }
 
-    //plot_field_on_given_surface(focal_plane, reflection1, focal_region, focal_points, "E1", "longitudinal_E1", filename_suffix);
-    //std::cout << "longitudinal_E1 plotted" << std::endl;
-    plot_field_on_given_surface(focal_plane, reflection1dist, focal_region, focal_points, "E1", "longitudinal_E1_dist", filename_suffix);
-    std::cout << "longitudinal_E1_dist plotted" << std::endl;
+    plot_field_on_given_surface(focal_plane, reflection1, focal_region, focal_points, "E1", "longitudinal_E1", filename_suffix);
+    std::cout << "longitudinal_E1 plotted" << std::endl;
+    if (plot_distortion)
+    {
+        plot_field_on_given_surface(focal_plane, reflection1dist, focal_region, focal_points, "E1", "longitudinal_E1_dist", filename_suffix);
+        std::cout << "longitudinal_E1_dist plotted" << std::endl;
+    }
+    if (two_beams)
+    {
+        plot_field_on_given_surface(focal_plane, reflection2, focal_region, focal_points, "E2", "longitudinal_E2", filename_suffix);
+        std::cout << "longitudinal_E2 plotted" << std::endl;
+    }
 
-    //plot_field_on_given_surface(focal_plane, reflection2, focal_region, focal_points, "E2", "longitudinal_E2", filename_suffix);
-    //std::cout << "longitudinal_E2 plotted" << std::endl;
-
-    //plot_field_on_given_surface(focal_plane_transversal, reflection1, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
-    //std::cout << "transversal_E1 plotted" << std::endl;
-    plot_field_on_given_surface(focal_plane_transversal, reflection1dist, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1_dist", filename_suffix);
-    std::cout << "transversal_E1_dist plotted" << std::endl;
-    //plot_field_on_given_surface(focal_plane_transversal, reflection2, focal_region_transversal, focal_points_transversal, "E2", "transversal_E2", filename_suffix);
-    //std::cout << "transversal_E2 plotted" << std::endl;
-
-
-
+    plot_field_on_given_surface(focal_plane_transversal, reflection1, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
+    std::cout << "transversal_E1 plotted" << std::endl;
+    if (plot_distortion)
+    {
+        plot_field_on_given_surface(focal_plane_transversal, reflection1dist, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1_dist", filename_suffix);
+        std::cout << "transversal_E1_dist plotted" << std::endl;
+    }
+    if (two_beams)
+    {
+        plot_field_on_given_surface(focal_plane_transversal, reflection2, focal_region_transversal, focal_points_transversal, "E2", "transversal_E2", filename_suffix);
+        std::cout << "transversal_E2 plotted" << std::endl;
+    }
 }
 
 
 int main()
 {
-    tbb::task_scheduler_init init(6);
+    tbb::task_scheduler_init init(7);
 
     //const double F = 20.0; // cm
     const double phi = M_PI / 3;
 
     std::cout << "Running stratton-chu computation" << std::endl;
-    //int steps_count = 20;
+    int steps_count = 50;
 
-    //double alpha_min = 0.0;
-    //double alpha_max = M_PI - phi;
-
-    double ampl = 0.1 * lambda;
+//    double ampl = 0.1 * lambda;
 //    double k = 2 * M_PI / (beam_radius / 10);
 //    double k = 2 * M_PI / (100 * lambda);
 
-//    plot_two_beams_by_given_alpha_and_phi(M_PI_4, phi, 1, ampl, k);
+    double alpha_min = 0.0;
+    double alpha_max = M_PI - phi;
+    //double alpha = M_PI/6;
 
-    double k = 2 * M_PI / (beam_radius/2);
+    //plot_two_beams_by_given_alpha_and_phi(alpha, phi, 0, 0);
 
-    for(double i = 1; i < 1000; i++)
+
+    for(int i = 0; i < steps_count; i++)
     {
-        plot_two_beams_by_given_alpha_and_phi(M_PI_4, phi, 1, ampl, k);
-        ampl += 0.1 * lambda;
+        double alpha = alpha_min + (alpha_max - alpha_min) / (steps_count-1) * i;
 
-        /*try
+        try
         {
-            plot_two_beams_by_given_alpha_and_phi(M_PI_4, phi, 1, ampl, k);
+            plot_two_beams_by_given_alpha_and_phi(alpha, phi, 0, 0);
         }
         catch(const std::domain_error& ex)
         {
-            std::cout << "Exception for k = " << k << ": " << ex.what() << std::endl;
-        }*/
+            std::cout << "Exception for alpha = " << alpha << ": " << ex.what() << std::endl;
+        }
     }
 
     return 0;

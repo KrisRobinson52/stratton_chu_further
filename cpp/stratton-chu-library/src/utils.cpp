@@ -176,3 +176,12 @@ Vector max_field(VectorComplex vec)
     return vec_real(vec);
 }
 
+double smoothed(double r, double rad, double eps)
+{
+    if (r < rad - eps)
+        return 1.0;
+    if (r > rad + eps)
+        return 0.0;
+
+    return 1.0 - (r - (rad-eps)) / (2 * eps);
+}

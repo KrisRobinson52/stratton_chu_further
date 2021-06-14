@@ -74,4 +74,6 @@ double get_p_by_beam_parameters_alpha(double alpha, double F);
  */
 Vector max_field(VectorComplex vec);
 
+double smoothed(double r, double rad, double eps = 0.1);
+
 #endif // UTILS_HPP
