@@ -12,3 +12,4 @@ target_link_libraries (${PROJECT_NAME} PRIVATE
 
 target_include_directories(${PROJECT_NAME} PRIVATE ../stratton-chu-library/include)
 
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
