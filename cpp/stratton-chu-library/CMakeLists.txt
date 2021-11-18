@@ -1,16 +1,11 @@
 project(stratton-chu)
 
 find_package(VTK COMPONENTS
-  vtkCommonColor
-  vtkCommonCore
-  vtkCommonDataModel
-  vtkFiltersGeneral
-  vtkIOXML
-  vtkInteractionStyle
+  CommonCore
+  CommonDataModel
+  IOXML
   REQUIRED
 )
-
-find_package(tbb)
 
 set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/stratton-chu/utils.hpp
@@ -40,9 +35,15 @@ set(LIB_SOURCES
 
 add_library(${PROJECT_NAME} ${LIB_SOURCES})
 
-include(${VTK_USE_FILE})
-
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${VTK_LIBRARIES} cubature polynomial tbb)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  VTK::CommonCore
+  VTK::CommonDataModel
+  VTK::IOXML
+  cubature
+  polynomial
+  boost_math
+)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
