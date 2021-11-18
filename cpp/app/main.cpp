@@ -8,8 +8,9 @@
 #include "stratton-chu/csv-saver.hpp"
 #include "stratton-chu/vtk-saver.hpp"
 
-#include <tbb/tbb.h>
 #include <iostream>
+#include "thread_pool.hpp"
+
 
 const double lambda = 0.0000091; // 910 nm
 const double beam_radius = 10; // cm
@@ -55,12 +56,12 @@ void plot_field_on_given_surface(
     VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
     VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
 
-    tbb::parallel_for( int(0), n_points,
-        [&region, n_points, &field, &surface,
-         &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m]
-        (int i) {
-            for (int j = 0; j < n_points; j++)
-            {
+
+    TaskQueue tasks;
+    for (int i = 0; i < n_points; i++) {
+        for (int j = 0; j < n_points; j++)
+        {
+            tasks.push([&, i, j](){
                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
                 Position p = surface.point(xy);
                 FieldValue field_value = field.get(p);
@@ -77,9 +78,11 @@ void plot_field_on_given_surface(
 
                 vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
                 vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
-            }
+            });
         }
-    );
+    }
+    ThreadPool threads{tasks};
+    threads.run();
 
     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
@@ -127,16 +130,16 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool two_be
     double dist_ky = 2 * distortion_k / sqrt(5);
     dist_kx /= distortion_direction[2];
 
-    std::vector<SurfaceDistortion::DistortionHarmonic> harmonics;
+    std::vector<SurfaceDistortionHarmonic::DistortionHarmonic> harmonics;
 
-    SurfaceDistortion::DistortionHarmonic h1 = { .ampl = distortion_ampl, .kx = dist_kx, .ky = dist_ky};
+    SurfaceDistortionHarmonic::DistortionHarmonic h1 = { .ampl = distortion_ampl, .kx = dist_kx, .ky = dist_ky};
 //    SurfaceDistortion::DistortionHarmonic h2 = {distortion_ampl, dist_kx*1.3, dist_ky*0.09};
 //    SurfaceDistortion::DistortionHarmonic h3 = {distortion_ampl, dist_kx*3.2, dist_ky*0.7};
     harmonics.push_back(h1);
 //    harmonics.push_back(h2);
 //    harmonics.push_back(h3);
 
-    SurfaceDistortion mirror1dist(mirror1, distortion_direction, harmonics);
+    SurfaceDistortionHarmonic mirror1dist(mirror1, distortion_direction, harmonics);
 
     // Параметры для гауссова пучка, той же дисперсии, что и _|¯¯¯|_, и чтобы в нём энергии как в _|¯¯¯|_
     double sigma = beam_radius / 2;
@@ -254,8 +257,6 @@ void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool two_be
 
 int main()
 {
-    tbb::task_scheduler_init init(7);
-
     //const double F = 20.0; // cm
     const double phi = M_PI / 3;
 
