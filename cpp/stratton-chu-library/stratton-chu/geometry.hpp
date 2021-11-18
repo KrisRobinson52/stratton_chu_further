@@ -80,7 +80,7 @@ public:
     }
 
     VectorType& operator=(const VectorType& right)
-    {        
+    {
         memcpy(x, right.x, sizeof(Type) * dim);
         return *this;
     }
