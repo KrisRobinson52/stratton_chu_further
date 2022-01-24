@@ -54,10 +54,7 @@ public:
         x[0] = x_;
     }
 
-    StaticVector()
-    {
-        memset(x, 0, sizeof(x[0])*dim);
-    }
+    StaticVector() : x{} {}
 
     template<typename CastType>
     StaticVector<dim, CastType> cast() const
