@@ -56,12 +56,16 @@ void plot_field_on_given_surface(
     VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
     VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
 
+    function task{[&region, &field, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, i = 0, j = 0](){}};
+    using TaskQueue = ConcurentQueue<decltype(task)>;
+    using ThreadPool = ThreadPoolImpl<TaskQueue>;
 
     TaskQueue tasks;
-    for (int i = 0; i < n_points; i++) {
+    for (int i = 0; i < n_points; i++)
+    {
         for (int j = 0; j < n_points; j++)
         {
-            tasks.push([&, i, j](){
+            tasks.push([&region, &field, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, i, j](){
                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
                 Position p = surface.point(xy);
                 FieldValue field_value = field.get(p);
@@ -82,7 +86,7 @@ void plot_field_on_given_surface(
         }
     }
     ThreadPool threads{tasks};
-    threads.run();
+    threads.run(worker<TaskQueue::value_type>);
 
     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
