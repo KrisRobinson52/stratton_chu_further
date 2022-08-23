@@ -1,6 +1,7 @@
 #include "stratton-chu/stratton-chu-field.hpp"
 
 #include "stratton-chu/utils.hpp"
+#include <iostream>
 
 using namespace std::complex_literals;
 
@@ -19,12 +20,12 @@ FieldValue StrattonChuReflection::get(const Position& pos) const
         m_region,
         200, 200
     );*/
-
+    //std::cout << "tuta1" << std::endl;
     result.E = integrate_cubature(
         [this, &pos] (double x, double y) -> VectorComplex { return subint_E(x, y, pos); },
         m_region, 1e-3, 1e-3);
     result.E *= 1 / (4 * M_PI);
-
+    //std::cout << "tuta2" << std::endl;
     // @TODO Calculate B
 
     return result;
@@ -36,14 +37,25 @@ VectorComplex StrattonChuReflection::subint_E(double x, double y, const Position
     Vector r0 = m_surf.point(xy);
     VectorComplex N = m_surf.dS_over_dxdy(xy).cast<Complex>();
 
+    //std::cout << "zdes1" << std::endl;
+
     FieldValue field = m_field.get(r0);
+
+    //std::cout << "zdes12" << std::endl;
+
     GreenFunc green(r, r0, m_k);
+
+    //std::cout << "zdes2" << std::endl;
 
     VectorComplex first_term = (N % field.B);
     first_term *= 2.0 * Complex(0.0, 1.0) * m_k * green.value();
 
+    //std::cout << "zdes3" << std::endl;
+
     VectorComplex second_term = green.gradient();
-    second_term *= 2.0 * (N * field.E);
+    second_term *= (2.0 * (N.operator*(field.E) ));
+
+    //std::cout << "zdes4" << std::endl;
 
     return first_term + second_term;
 }

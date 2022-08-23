@@ -1,6 +1,7 @@
 #include "stratton-chu/parallel-beam.hpp"
 
 #include <cmath>
+#include <iostream>
 
 // using namespace std::complex_literals;
 
@@ -35,11 +36,14 @@ ParallelBeamAlpha::ParallelBeamAlpha(double lambda, const Position& r0, const Ve
 
 FieldValue ParallelBeamAlpha::get(const Position& pos) const
 {
+    //std::cout << "??????" << std::endl;
     Vector delta_r = (pos - m_r0);
-    double x1 = delta_r * m_alpha1,
-           x2 = delta_r * m_alpha2,
-           l = delta_r * m_alpha ;
+    double x1 = delta_r.operator*(m_alpha1),
+           x2 = delta_r.operator*(m_alpha2),
+           l = delta_r.operator*(m_alpha) ;
     Complex phase_mul = std::exp( Complex(0.0, 1.0) * m_k * l );
+
+    
 
     FieldValue result;
     Complex E1 = m_E1(x1, x2) * phase_mul;

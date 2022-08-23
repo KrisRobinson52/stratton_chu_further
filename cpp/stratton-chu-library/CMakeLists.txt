@@ -20,6 +20,7 @@ set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/stratton-chu/stratton-chu-field.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/csv-saver.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/vtk-saver.hpp
+    ${PROJECT_SOURCE_DIR}/stratton-chu/spec-inverse-fourier.hpp
 
     ${PROJECT_SOURCE_DIR}/src/utils.cpp
     ${PROJECT_SOURCE_DIR}/src/surface.cpp
@@ -31,6 +32,8 @@ set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/src/stratton-chu-field.cpp
     ${PROJECT_SOURCE_DIR}/src/csv-saver.cpp
     ${PROJECT_SOURCE_DIR}/src/vtk-saver.cpp
+    ${PROJECT_SOURCE_DIR}/src/spec-inverse-fourier.cpp
+
 )
 
 add_library(${PROJECT_NAME} ${LIB_SOURCES})
