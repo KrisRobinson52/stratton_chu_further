@@ -3,7 +3,15 @@
 #include "stratton-chu/utils.hpp"
 #include <iostream>
 
+
+#include <functional>
+#include <unordered_map>
+#include "constants.hpp"
+#include "cache.hpp"
+
+
 using namespace std::complex_literals;
+using namespace Caching;
 
 StrattonChuReflection::StrattonChuReflection(ISurface& surf, IField& field, const SurfaceRegion& region) :
     FieldBase(field.lambda()),
@@ -13,7 +21,17 @@ StrattonChuReflection::StrattonChuReflection(ISurface& surf, IField& field, cons
 
 FieldValue StrattonChuReflection::get(const Position& pos) const
 {
+    //static std::unordered_map<Key, FieldValue> cache{(focal_points*focal_points+focal_points_transversal*(focal_points_transversal-1))*harmonics_number};
+    
+    Dependances deps{pos[0], pos[1], pos[2], this->lambda()};
+/*
+    if (cache.find(key) != cache.end()) {
+        return cache[key];
+    }
+*/
     FieldValue result;
+    static ConcurrentCache<decltype(deps), FieldValue> conc_cache{};
+    auto stored = conc_cache.load(deps);
 /*
     result.E = integrate_trapezoid<VectorComplex>(
         [this, &pos] (double x, double y) -> VectorComplex { return subint_E(x, y, pos); },
@@ -21,13 +39,21 @@ FieldValue StrattonChuReflection::get(const Position& pos) const
         200, 200
     );*/
     //std::cout << "tuta1" << std::endl;
-    result.E = integrate_cubature(
-        [this, &pos] (double x, double y) -> VectorComplex { return subint_E(x, y, pos); },
-        m_region, 1e-3, 1e-3);
-    result.E *= 1 / (4 * M_PI);
-    //std::cout << "tuta2" << std::endl;
+    if (stored.has_value())
+    {
+        result = stored.value();
+    }
+    else
+    {
+        result.E = integrate_cubature(
+            [this, &pos] (double x, double y) -> VectorComplex { return subint_E(x, y, pos); },
+            m_region, 1e-3, 1e-3);
+        result.E *= 1 / (4 * M_PI);
+        conc_cache.store(deps, result);
+    }
+  
     // @TODO Calculate B
-
+    //cache[key] = result;
     return result;
 }
 

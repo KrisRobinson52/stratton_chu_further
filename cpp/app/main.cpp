@@ -19,9 +19,13 @@
 
 #include <vector>
 
+#include "constants.hpp"
+
 const double lambda = 0.000091; // cm = 910 nm
 const double beam_radius = 10; // cm
 const double beam_width = 2 * beam_radius; // cm
+
+
 
 std::vector<SurfaceDistortionLegendre::DistortionPolinom> make_distortion_polynoms(double amp)
 {
@@ -132,7 +136,7 @@ void plot_field_on_given_surface_with_time(
                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
                 Position p = surface.point(xy);
                 FieldValue field_value = field.get(p, timing);
-                //std::cout << "point ready" << std::endl;
+                //std::cout << "point ready "<< i << "," << j << std::endl;
 
                 vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
                 vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
@@ -368,11 +372,11 @@ int main()
     double alpha = M_PI / 3;
     const double omega0 = 2 * M_PI / lambda*c;   
     
-    double tauint;
+    double tauint; //для интенсивности
     tauint=11*pow(10, -15);
     //std::cout << tauint << std::endl;
 
-    double tauf=tauint/(2*sqrt(2*log(2)));
+    double tauf=tauint/(2*sqrt(2*log(2))); //для поля
     //std::cout << tauf << std::endl;
 
     //funct=exp(-sqr(t) / (4 * sqr(tauf)) * exp(-Complex(0.0, 1.0) * omega0 * t);
@@ -451,22 +455,24 @@ int main()
     double halfshir=M_PI/tauf;
     int left_harmonics_border=round(T*(omega0-halfshir)/2/M_PI);
     int right_harmonics_border=round(T*(omega0+halfshir)/2/M_PI);
-    int harmonics_number=7; //пробуем только нечётное число
+
+    //исправления для учёта всех гармоник
+    int harmonics_number_full=right_harmonics_border-left_harmonics_border;
+    std::cout << harmonics_number_full << std::endl;
+    if (harmonics_number_full==harmonics_number) {
+        std::cout << "Calculations are made for all points in spectrum" << std::endl;
+    } else {
+        std::cout << "Set harmonics_number in constants.hpp to " << harmonics_number_full << std::endl;
+    }
+
+    //для учёта избранного числа гармоник
     int harmonic_interval=round(static_cast<double>(right_harmonics_border-left_harmonics_border)/(harmonics_number+1));
     int middle_index=harmonics_number/2;
 
-    //std::cout << central_harmonic << std::endl;
 
-    /*
-    std::vector<double> freqs;
-    std::vector<double> lambdas;
-    std::vector<std::complex<double>> ampls;
-    for (int i = 1; i <= harmonics_number; i++) {
-        freqs.push_back(5+i*5);
-        lambdas.push_back(2*M_PI*c/freqs[i]);
-        ampls.push_back(std::complex<double>(0.0, 1.0)*std::complex<double>(i, 0));
-    }
-    */
+
+
+    //std::cout << central_harmonic << std::endl;
 
 
        // Параметры для гауссова пучка, той же дисперсии, что и _|¯¯¯|_, и чтобы в нём энергии как в _|¯¯¯|_
@@ -475,15 +481,34 @@ int main()
     double gauss_A = 2;
     //std::vector<double> gauss_AA(harmonics_number);
 
-
+    //для учёта избранного числа гармоник
     std::vector<double> freqs(harmonics_number);
     std::vector<double> lambdas(harmonics_number);
     std::vector<std::complex<double>> ampls(harmonics_number);
-
     freqs[middle_index]=omega0;
     lambdas[middle_index]=lambda;
     ampls[middle_index]=outc[central_harmonic];
+
     //gauss_AA[middle_index]=2/sqrt(harmonics_number);
+
+    //исправления для учёта всех гармоник
+    // std::vector<double> freqs(harmonics_number_full);
+    // std::vector<double> lambdas(harmonics_number_full); 
+    // std::vector<std::complex<double>> ampls(harmonics_number_full);
+    //std::vector<double> freqs_full(harmonics_number_full);
+    //std::vector<double> lambdas_full(harmonics_number_full); 
+    //std::vector<std::complex<double>> ampls_full(harmonics_number_full);
+
+    // for (int i = 0; i < harmonics_number_full; i++) {
+    //     freqs[i]=(left_harmonics_border+i)/T*2*M_PI;
+    //     lambdas[i]=2*M_PI*c/freqs[i];
+    //     ampls[i]=outc[left_harmonics_border+i];
+    //     //std::cout << freqs[i] << std::endl;
+    // }
+
+    //freqs[central_harmonic-left_harmonics_border]=omega0;
+    //lambdas[central_harmonic-left_harmonics_border]=lambda;
+
 
     if (middle_index!=0) {
         for (int i = 1; i <= middle_index; i++) {
@@ -493,7 +518,7 @@ int main()
             freqs[middle_index-i]=(central_harmonic-harmonic_interval*i)/T*2*M_PI;
             lambdas[middle_index-i]=2*M_PI*c/freqs[middle_index-i];
             ampls[middle_index-i]=outc[central_harmonic-harmonic_interval*i];
-
+            
             //std::cout << freqs[i] << std::endl;
 
             //gauss_AA[middle_index+i]=2/sqrt(harmonics_number)*abs(outc[central_harmonic])/abs(outc[central_harmonic+harmonic_interval*i]);
@@ -501,7 +526,8 @@ int main()
         }
     }
 
-    
+
+
     // for (int i = 0; i < harmonics_number; i++) {
     //         std::cout << gauss_AA[i] << std::endl;
     // }
@@ -581,6 +607,7 @@ int main()
     std::cout << (sizeof(ampls)/sizeof(*ampls)) << std::endl;
     */
 
+
     SpecIFT impulse(refs, freqs, ampls);
 
      
@@ -590,7 +617,7 @@ int main()
     focal_region.x_max = 0.0 + 12 * lambda;
     focal_region.y_min = 0.0 - 12 * lambda;
     focal_region.y_max = 0.0 + 12 * lambda;
-    int focal_points = 301;
+
 
     Vector direction_vector = p_focus - mirror1.point({h, 0.0});
     direction_vector /= direction_vector.norm();
@@ -601,13 +628,13 @@ int main()
     focal_region_transversal.x_max = 0.0 + 10 * lambda;
     focal_region_transversal.y_min = 0.0 - 10 * lambda;
     focal_region_transversal.y_max = 0.0 + 10 * lambda;
-    int focal_points_transversal = 201;
+
 
     double Tmax=5*tauf;
     int number_of_time_points=25;
     double time_interval=Tmax/number_of_time_points;
 
-/*
+
     std::cout << harmonics_number << " harmonics modeling starts" << std::endl;
     
     for (size_t i=20;i<number_of_time_points;i++)
@@ -624,7 +651,7 @@ int main()
         std::cout << "transversal_E1 plotted" << std::endl;
 
     }
-*/
+
     
     std::cout << harmonics_number << " harmonics modeling is over" << std::endl;
 

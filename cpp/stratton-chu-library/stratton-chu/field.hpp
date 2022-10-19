@@ -2,6 +2,9 @@
 #define FIELD_HPP
 
 #include "stratton-chu/types.hpp"
+#include <bit>
+#include <array>
+#include <span>
 
 constexpr double c = 29979245800.0;
 
@@ -9,6 +12,19 @@ struct FieldValue
 {
     VectorComplex E;
     VectorComplex B;
+
+    auto serialize () const {
+        std::array<std::byte, sizeof(FieldValue)> bytes;
+        std::memcpy(bytes.data(),this,sizeof(FieldValue));
+        return bytes;
+    }
+
+    static auto deserialize (std::span<std::byte> bytes) {
+        FieldValue fieldv;
+        std::memcpy(&fieldv,bytes.data(),sizeof(FieldValue));
+        return fieldv;
+    }
+
 
     FieldValue operator+(const FieldValue& right)
     {

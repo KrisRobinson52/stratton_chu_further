@@ -4,11 +4,14 @@
 #include "stratton-chu/types.hpp"
 #include "stratton-chu/field.hpp"
 #include "stratton-chu/surface.hpp"
+#include <iostream>
 
 class StrattonChuReflection : public FieldBase
 {
 public:
     StrattonChuReflection(ISurface& surf, IField& field, const SurfaceRegion& region);
+
+    //std::vector<std::vector<FieldValue>> InRegion(const ISurface& surface, const SurfaceRegion& region, int n_points);
 
     FieldValue get(const Position& pos) const override;
 

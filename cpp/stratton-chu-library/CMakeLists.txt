@@ -39,6 +39,8 @@ set(LIB_SOURCES
 add_library(${PROJECT_NAME} ${LIB_SOURCES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/../3rdparty/cache)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   VTK::CommonCore
@@ -49,4 +51,3 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   boost_math
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)

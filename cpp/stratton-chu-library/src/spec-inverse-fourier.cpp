@@ -11,7 +11,6 @@
 //template<std::size_t SIZE>
 
 SpecIFT::SpecIFT(std::vector<StrattonChuReflection> &refs, std::vector<double> &freqs, std::vector<std::complex<double>> &amplF) :
-//SpecIFT::SpecIFT(std::vector<StrattonChuReflection> &refs, std::array <double, SIZE> &freqs, std::array <std::complex<double>, SIZE> &amplF) :
     m_refs(refs),
     m_freqs(freqs), m_amplF(amplF)
 {
@@ -34,5 +33,6 @@ FieldValue SpecIFT::get(const Position& pos, const double time) const
         //std::cout << i << std::endl;
         result.E=result.E+m_refs[i].get(pos).E*m_amplF[i]*exp(std::complex<double>(0.0, 1.0) * m_freqs[i] * time);
     }
+    //std::cout << pos[0] << " " << pos[1]<< " "<< pos[2]<< std::endl;
     return result;
 }

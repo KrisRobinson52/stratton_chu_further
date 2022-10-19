@@ -7,3 +7,6 @@
 [submodule "cpp/3rdparty/math"]
 	path = cpp/3rdparty/math
 	url = https://github.com/boostorg/math
+[submodule "cpp/3rdparty/cache"]
+	path = cpp/3rdparty/cache
+	url = https://github.com/MaxCharlington/Cache
