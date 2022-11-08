@@ -10,3 +10,7 @@
 [submodule "cpp/3rdparty/cache"]
 	path = cpp/3rdparty/cache
 	url = https://github.com/MaxCharlington/Cache
+	branch = main
+[submodule "cpp/3rdparty/tracker"]
+	path = cpp/3rdparty/tracker
+	url = https://github.com/MaxCharlington/StaticLocalTracker.git
