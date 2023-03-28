@@ -109,6 +109,11 @@ void VTKVolumeSaver::set_point(size_t x_index, size_t y_index, size_t z_index, P
     m_data->SetTuple(glob_ind, point_data);
 }
 
+void VTKVolumeSaver::set_point(size_t x_index, size_t y_index, size_t z_index, Position p, Vector vec)
+{
+    set_point(x_index, y_index, z_index, p, vec[0], vec[1], vec[2]);
+}
+
 size_t VTKVolumeSaver::global_index(size_t x, size_t y, size_t z)
 {
     return x * m_Ny * m_Nz + y * m_Nz + z;

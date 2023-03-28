@@ -191,7 +191,7 @@ public:
         static_assert(dim == 3, "Vector product works only for dimension = 3!");
         VectorType result;
         result[0] =   (*this)[1] * right[2] - (*this)[2] * right[1];
-        result[1] = - (*this)[0] * right[2] - (*this)[2] * right[0];
+        result[1] = - (*this)[0] * right[2] + (*this)[2] * right[0];
         result[2] =   (*this)[0] * right[1] - (*this)[1] * right[0];
         return result;
     }

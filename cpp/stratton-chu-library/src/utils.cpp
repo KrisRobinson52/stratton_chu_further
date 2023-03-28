@@ -160,6 +160,16 @@ double get_p_by_beam_parameters_alpha(double alpha, double F)
     }
 }
 
+double get_F_by_beam_parameters_alpha_and_p(double alpha, double p)
+{
+    if (fabs(alpha) <= 1e-10)
+    {
+        return 0.0;
+    } else {
+        return p/2 /((1 - cos(alpha)) / sin(alpha));
+    }
+}
+
 Vector max_field(VectorComplex vec)
 {
     Vector ampls = vec_modulus(vec);

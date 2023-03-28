@@ -43,6 +43,7 @@ public:
 
     void set_point(size_t x_index, size_t y_index, size_t z_index,
                    Position p, double value_x, double value_y, double value_z);
+    void set_point(size_t x_index, size_t y_index, size_t z_index, Position p, Vector vec);
     void save(const char* filename);
 
 private:

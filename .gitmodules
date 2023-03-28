@@ -14,3 +14,6 @@
 [submodule "cpp/3rdparty/tracker"]
 	path = cpp/3rdparty/tracker
 	url = https://github.com/MaxCharlington/StaticLocalTracker.git
+[submodule "cpp/3rdparty/threads"]
+	path = cpp/3rdparty/threads
+	url = https://github.com/MaxCharlington/ThreadPool.git
