@@ -1,11 +1,11 @@
 project(stratton-chu)
 
-find_package(VTK COMPONENTS
-  CommonCore
-  CommonDataModel
-  IOXML
-  REQUIRED
-)
+# find_package(VTK COMPONENTS
+#   CommonCore
+#   CommonDataModel
+#   IOXML
+#   REQUIRED
+# )
 
 set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/stratton-chu/utils.hpp
@@ -20,7 +20,7 @@ set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/stratton-chu/parallel-beam.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/stratton-chu-field.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/csv-saver.hpp
-    ${PROJECT_SOURCE_DIR}/stratton-chu/vtk-saver.hpp
+    # ${PROJECT_SOURCE_DIR}/stratton-chu/vtk-saver.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/spec-inverse-fourier.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/fields-in-region.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/volume.hpp
@@ -37,7 +37,7 @@ set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/src/parallel-beam.cpp
     ${PROJECT_SOURCE_DIR}/src/stratton-chu-field.cpp
     ${PROJECT_SOURCE_DIR}/src/csv-saver.cpp
-    ${PROJECT_SOURCE_DIR}/src/vtk-saver.cpp
+    # ${PROJECT_SOURCE_DIR}/src/vtk-saver.cpp
     ${PROJECT_SOURCE_DIR}/src/spec-inverse-fourier.cpp
     ${PROJECT_SOURCE_DIR}/src/volume.cpp
 
@@ -52,9 +52,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/../3rdp
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/../3rdparty/threads)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
-  VTK::CommonCore
-  VTK::CommonDataModel
-  VTK::IOXML
+  # VTK::CommonCore
+  # VTK::CommonDataModel
+  # VTK::IOXML
   cubature
   polynomial
   boost_math

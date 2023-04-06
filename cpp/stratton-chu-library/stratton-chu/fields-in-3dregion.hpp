@@ -267,11 +267,11 @@ public:
 
     ~FieldsIn3dRegion()
     {
-        std::fstream file_dump(region_name, std::ios::out | std::ios::binary);
-        for (auto& h :m_HarmonicsCatalogue)
-        {
-            file_dump.write(reinterpret_cast<const char*>(h.data()), sizeof(typename decltype(m_HarmonicsCatalogue)::value_type));
-        }            
+        // std::fstream file_dump(region_name, std::ios::out | std::ios::binary);
+        // for (auto& h :m_HarmonicsCatalogue)
+        // {
+        //     file_dump.write(reinterpret_cast<const char*>(h.data()), sizeof(typename decltype(m_HarmonicsCatalogue)::value_type));
+        // }            
     }
 
     
