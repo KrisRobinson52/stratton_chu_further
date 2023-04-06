@@ -14,7 +14,7 @@
 #include <array>
 #include <string_view>
 #include <fstream>
-//#include "thread_pool.hpp"
+#define IGNORE_BIND_CORE
 #include "threading.hpp"
 
 // constexpr double c = 29979245800.0;
@@ -57,7 +57,7 @@ public:
                 return true;
             }
         };
-        using Threads = ThreadPool<Task>;
+        using Threads = Threading::ThreadPool<ConcurrentQueue<Task>,100>;
         typename Threads::TaskQueue tasks;
         // std::cout << "ready" << std::endl;
 
