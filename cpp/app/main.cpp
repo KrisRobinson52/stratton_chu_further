@@ -8,6 +8,7 @@
 #include "stratton-chu/spec-inverse-fourier.hpp"
 #include "stratton-chu/fields-in-region.hpp"
 #include "stratton-chu/fields-in-3dregion.hpp"
+#include "stratton-chu/distorted-beam.hpp"
 
 #include "stratton-chu/csv-saver.hpp"
 // #include "stratton-chu/vtk-saver.hpp"
@@ -29,6 +30,9 @@
 
 #include <chrono>
 #include <random>
+
+#include <zernike_bits/zernike_radial_poly.h>
+#include <zernike_bits/zernike_poly.h>
 
 #define WITH_NAME(var) var, #var
 #define GET_VARIABLE_NAME(var) (#var)
@@ -64,852 +68,852 @@ std::vector<SurfaceDistortionLegendre::DistortionPolinom> make_distortion_polyno
     return result;
 }
 
-// void plot_field_on_given_surface(
-//         const ISurface& surface,
-//         const IField& field,
-//         const SurfaceRegion& region,
-//         // double phase,
-//         int n_points,
-//         const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
-// {
-//     VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
-//     VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     // В тау-тау-эн;
-//     VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     using Threads = ThreadPool<std::function<void()>>;
-//     Threads::TaskQueue tasks;
-
-//     for (int i = 0; i < n_points; i++)
-//     {
-//         for (int j = 0; j < n_points; j++)
-//         {
-//             tasks.push([&region, &field, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, i, j](){
-//                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
-//                 Position p = surface.point(xy);
-//                 FieldValue field_value = field.get(p);
-//                 //std::cout << "point ready" << std::endl;
-//                 // field_value.E *=  exp(std::complex<double>(0.0, 1.0) * phase);
-
-//                 vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
-//                 vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
-//                 vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
-
-//                 FieldValue field_rotated;
-//                 field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
-//                 field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
-//                 field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
-
-//                 vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
-//                 vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
-//             });
-//         }
-//     }
-//     Threads threads{tasks};
-//     threads.run();
-
-//     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
-//     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
-//     vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
-
-//     vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
-//     vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
-// }
-
-// void plot_field_on_given_surface_mod(
-//         const ISurface& surface,
-//         const IField& field,
-//         const SurfaceRegion& region,
-//         double phase,
-//         int n_points,
-//         const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
-// {
-//     VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
-//     VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     // В тау-тау-эн;
-//     VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     using Threads = ThreadPool<std::function<void()>>;
-//     Threads::TaskQueue tasks;
-
-//     for (int i = 0; i < n_points; i++)
-//     {
-//         for (int j = 0; j < n_points; j++)
-//         {
-//             tasks.push([&region, &field, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, i, j, phase](){
-//                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
-//                 Position p = surface.point(xy);
-//                 FieldValue field_value = field.get(p);
-//                 //std::cout << "point ready" << std::endl;
-//                 field_value.E *=  exp(std::complex<double>(0.0, 1.0) * phase);
-
-//                 vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
-//                 vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
-//                 vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
-
-//                 FieldValue field_rotated;
-//                 field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
-//                 field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
-//                 field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
-
-//                 vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
-//                 vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
-//             });
-//         }
-//     }
-//     Threads threads{tasks};
-//     threads.run();
-
-//     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
-//     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
-//     vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
-
-//     vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
-//     vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
-// }
-
-// //с учётом времени
-// void plot_field_on_given_surface_with_time(
-//         const ISurface& surface,
-//         const SpecIFT& field,
-//         const SurfaceRegion& region,
-//         int n_points,
-//         double timing,
-//         const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
-// {
-//     VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
-//     VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     // В тау-тау-эн;
-//     VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     using Threads = ThreadPool<std::function<void()>>;
-//     Threads::TaskQueue tasks;
-
-//     for (int i = 0; i < n_points; i++)
-//     {
-//         for (int j = 0; j < n_points; j++)
-//         {
-//             tasks.push([&region, &field, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, timing, i, j](){
-//                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
-//                 Position p = surface.point(xy);
-//                 FieldValue field_value = field.get(p, timing);
-//                 //std::cout << "point ready "<< i << "," << j << std::endl;
-
-//                 vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
-//                 vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
-//                 vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
-
-//                 FieldValue field_rotated;
-//                 field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
-//                 field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
-//                 field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
-
-//                 vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
-//                 vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
-//             });
-//         }
-//     }
-//     Threads threads{tasks};
-//     threads.run();
-
-//     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
-//     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
-//     vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
-
-//     vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
-//     vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
-// }
-
-
-// //с учётом времени (3d array method)
-// void plot_field_on_given_surface_with_time_3darr(
-//         const ISurface& surface,
-//         const SurfaceRegion& region,
-//         auto& fields, //FieldsInRegion<>& fields;
-//         std::vector<double> &freqs,
-//         std::vector<std::complex<double>> &amplF,
-//         int n_points,
-//         double timing,
-//         const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
-// {
-//     VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
-//     VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     // В тау-тау-эн;
-//     VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     fields.constructSummary(freqs, amplF, timing);
-
-//     using Threads = ThreadPool<std::function<void()>>;
-//     Threads::TaskQueue tasks;
-
-//     for (int i = 0; i < n_points; i++)
-//     {
-//         for (int j = 0; j < n_points; j++)
-//         {
-//             tasks.push([&region, &fields, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, timing, i, j](){
-//                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
-//                 Position p = surface.point(xy);
-//                 FieldValue field_value = fields.getSummary(i, j);
-//                 //std::cout << "point ready "<< i << "," << j << std::endl;
-
-//                 vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
-//                 vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
-//                 vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
-
-//                 FieldValue field_rotated;
-//                 field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
-//                 field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
-//                 field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
-
-//                 vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
-//                 vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
-//             });
-//         }
-//     }
-//     Threads threads{tasks};
-//     threads.run();
-
-//     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
-//     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
-//     vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
-
-//     vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
-//     vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
-// }
-
-// //3d array method
-// void plot_field_on_given_surface_3darr(
-//         const ISurface& surface,
-//         const SurfaceRegion& region,
-//         auto& fields, //FieldsInRegion<>& fields;
-//         // std::vector<double> &phases,
-//         // size_t iter,
-//         int n_points,
-//         const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
-// {
-//     VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
-//     VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
-//     VTKSurfaceSaver vtk_saver_int(n_points, n_points, (quantity_name + "_intens").c_str());
-
-//     // // В тау-тау-эн;
-//     // VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     // VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     using Threads = ThreadPool<std::function<void()>>;
-//     Threads::TaskQueue tasks;
-
-//     for (int i = 0; i < n_points; i++)
-//     {
-//         for (int j = 0; j < n_points; j++)
-//         {
-//             tasks.push([&region, &fields, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_int, /*&vtk_saver_surf_m,*/ n_points,  i, j/*, iter*/](){
-//                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
-//                 Position p = surface.point(xy);
-//                 FieldValue field_value = fields.getSummary(i, j);
-//                 // FieldValue field_value = fields.getHarmonic(iter, i, j);
-//                 //std::cout << "point ready "<< i << "," << j << std::endl;
-
-//                 vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
-//                 vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
-//                 vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
-
-//                 double absE;
-//                 Vector ves;
-//                 absE=0.0;
-//                 ves=max_field(field_value.E);
-//                 for (size_t l=0;l<3;l++){
-//                     absE+=ves[l]*ves[l];
-//                 }
-//                 absE=absE*4e13;
-//                 ves[0]=absE;
-//                 ves[1]=0;
-//                 ves[2]=0;
-//                 vtk_saver_int.set_point(i, j, p, ves);
-
-//                 // FieldValue field_rotated;
-//                 // field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
-//                 // field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
-//                 // field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
-
-//                 // vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
-//                 // vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
-//             });
-//         }
-//     }
-//     Threads threads{tasks};
-//     threads.run();
-
-//     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
-//     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
-//     vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
-//     vtk_saver_int.save((filename_prefix + "_intens_" + filename_suffix).c_str());
-
-//     // vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
-//     // vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
-// }
-
-// void plot_field_on_given_surface_3darr_1(
-//         const ISurface& surface,
-//         const SurfaceRegion& region,
-//         auto& fields, //FieldsInRegion<>& fields;
-//         // std::vector<double> &phases,
-//         // size_t iter,
-//         int n_points,
-//         const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
-// {
-//     VTKSurfaceSaver vtk_saver_r(55, 55, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_i(55, 55, (quantity_name + "_imag").c_str());
-//     VTKSurfaceSaver vtk_saver_m(55, 55, (quantity_name + "_max").c_str());
-//     VTKSurfaceSaver vtk_saver_int(55, 55, (quantity_name + "_intens").c_str());
-
-//     // // В тау-тау-эн;
-//     // VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     // VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     using Threads = ThreadPool<std::function<void()>>;
-//     Threads::TaskQueue tasks;
-
-//     for (int i = 123; i < 178; i++)
-//     {
-//         for (int j = 123; j < 178; j++)
-//         {
-//             tasks.push([&region, &fields, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_int, /*&vtk_saver_surf_m,*/ n_points,  i, j/*, iter*/](){
-//                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
-//                 Position p = surface.point(xy);
-//                 FieldValue field_value = fields.getSummary(i, j);
-//                 // FieldValue field_value = fields.getHarmonic(iter, i, j);
-//                 //std::cout << "point ready "<< i << "," << j << std::endl;
-
-//                 vtk_saver_r.set_point(i-123, j-123, p, vec_real(field_value.E));
-//                 vtk_saver_i.set_point(i-123, j-123, p, vec_imag(field_value.E));
-//                 vtk_saver_m.set_point(i-123, j-123, p, max_field(field_value.E));
-
-//                 double absE;
-//                 Vector ves;
-//                 absE=0.0;
-//                 ves=max_field(field_value.E);
-//                 for (size_t l=0;l<3;l++){
-//                     absE+=ves[l]*ves[l];
-//                 }
-//                 absE=absE*4e13*50/16;
-//                 ves[0]=absE;
-//                 ves[1]=0;
-//                 ves[2]=0;
-//                 vtk_saver_int.set_point(i-123, j-123, p, ves);
-
-//                 // FieldValue field_rotated;
-//                 // field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
-//                 // field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
-//                 // field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
-
-//                 // vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
-//                 // vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
-//             });
-//         }
-//     }
-//     Threads threads{tasks};
-//     threads.run();
-
-//     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
-//     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
-//     vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
-//     vtk_saver_int.save((filename_prefix + "_intens_" + filename_suffix).c_str());
-
-//     // vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
-//     // vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
-// }
-
-// void plot_field_on_given_surface_3darr_2(
-//         const ISurface& surface,
-//         const SurfaceRegion& region,
-//         auto& fields, //FieldsInRegion<>& fields;
-//         // std::vector<double> &phases,
-//         // size_t iter,
-//         int n_points,
-//         const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
-// {
-//     VTKSurfaceSaver vtk_saver_r(45, 45, (quantity_name + "_real").c_str());
-//     VTKSurfaceSaver vtk_saver_i(45, 45, (quantity_name + "_imag").c_str());
-//     VTKSurfaceSaver vtk_saver_m(45, 45, (quantity_name + "_max").c_str());
-//     VTKSurfaceSaver vtk_saver_int(45, 45, (quantity_name + "_intens").c_str());
-
-//     // // В тау-тау-эн;
-//     // VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
-//     // VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
-
-//     using Threads = ThreadPool<std::function<void()>>;
-//     Threads::TaskQueue tasks;
-
-//     for (int i = 78; i < 123; i++)
-//     {
-//         for (int j = 78; j < 123; j++)
-//         {
-//             tasks.push([&region, &fields, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_int, /*&vtk_saver_surf_m,*/ n_points,  i, j/*, iter*/](){
-//                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
-//                 Position p = surface.point(xy);
-//                 FieldValue field_value = fields.getSummary(i, j);
-//                 // FieldValue field_value = fields.getHarmonic(iter, i, j);
-//                 //std::cout << "point ready "<< i << "," << j << std::endl;
-
-//                 vtk_saver_r.set_point(i-78, j-78, p, vec_real(field_value.E));
-//                 vtk_saver_i.set_point(i-78, j-78, p, vec_imag(field_value.E));
-//                 vtk_saver_m.set_point(i-78, j-78, p, max_field(field_value.E));
-
-//                 double absE;
-//                 Vector ves;
-//                 absE=0.0;
-//                 ves=max_field(field_value.E);
-//                 for (size_t l=0;l<3;l++){
-//                     absE+=ves[l]*ves[l];
-//                 }
-//                 absE=absE*4e13*50/16;
-//                 ves[0]=absE;
-//                 ves[1]=0;
-//                 ves[2]=0;
-//                 vtk_saver_int.set_point(i-78, j-78, p, ves);
-
-//                 // FieldValue field_rotated;
-//                 // field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
-//                 // field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
-//                 // field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
-
-//                 // vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
-//                 // vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
-//             });
-//         }
-//     }
-//     Threads threads{tasks};
-//     threads.run();
-
-//     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
-//     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
-//     vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
-//     vtk_saver_int.save((filename_prefix + "_intens_" + filename_suffix).c_str());
-
-//     // vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
-//     // vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
-// }
-
-// void plot_field_in_given_area_3darr(
-//         const IVolume& volume,
-//         const VolumeRegion& region,
-//         auto& fields, //FieldsInRegion<>& fields;
-//         // std::vector<double> &phases,
-//         // size_t iter,
-//         int n_points,
-//         const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
-// {
-//     VTKVolumeSaver vtk_saver_r(n_points, n_points, n_points, (quantity_name + "_real").c_str());
-//     VTKVolumeSaver vtk_saver_i(n_points, n_points, n_points, (quantity_name + "_imag").c_str());
-//     VTKVolumeSaver vtk_saver_m(n_points, n_points, n_points, (quantity_name + "_max").c_str());
-//     VTKVolumeSaver vtk_saver_int(n_points, n_points, n_points, (quantity_name + "_intens").c_str());
-
-//     using Threads = ThreadPool<std::function<void()>>;
-//     Threads::TaskQueue tasks;
-
-//     for (int k = 0; k < n_points; k++)
-//     {
-//         for (int i = 0; i < n_points; i++)
-//         {
-//             for (int j = 0; j < n_points; j++)
-//             {
-//                 tasks.push([&region, &fields, &volume, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_int, /*&vtk_saver_surf_m,*/ n_points,  i, j, k/*, iter*/](){
-//                     Vector xyz(region.x_min + region.widthx() / (n_points-1) * i, region.y_min + region.widthy() / (n_points-1) * j, region.z_min + region.height() / (n_points-1) * k);
-//                     Position p = volume.point(xyz);
-//                     FieldValue field_value = fields.getSummary(i, j, k);
-//                     // FieldValue field_value = fields.getHarmonic(iter, i, j);
-//                     //std::cout << "point ready "<< i << "," << j << std::endl;
-
-//                     vtk_saver_r.set_point(i, j, k, p, vec_real(field_value.E));
-//                     vtk_saver_i.set_point(i, j, k, p, vec_imag(field_value.E));
-//                     vtk_saver_m.set_point(i, j, k, p, max_field(field_value.E));
-
-//                     double absE;
-//                     Vector ves;
-//                     absE=0.0;
-//                     ves=max_field(field_value.E);
-//                     for (size_t l=0;l<3;l++){
-//                         absE+=ves[l]*ves[l];
-//                     }
-//                     absE=absE*4e13*50/16;
-//                     ves[0]=absE;
-//                     ves[1]=0;
-//                     ves[2]=0;
-//                     vtk_saver_int.set_point(i, j, k, p, ves);
-
-//                     // FieldValue field_rotated;
-//                     // field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
-//                     // field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
-//                     // field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
-
-//                     // vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
-//                     // vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
-//                 });
-//             }
-//         }
-//     }
-//     Threads threads{tasks};
-//     threads.run();
-
-//     vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
-//     vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
-//     vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
-//     vtk_saver_int.save((filename_prefix + "_intens_" + filename_suffix).c_str());
-
-//     // vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
-//     // vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
-// }
-
-// void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool two_beams = false, bool plot_distortion = false,
-//                                            double distortion_ampl = 0, double distortion_k = 2*M_PI/lambda)
-// {
-//     std::cout << "Plotting for alpha = " << alpha << "\t phi = " << phi;
-
-//     double F = get_F_by_beam_parameters_alpha(alpha, phi, beam_width);
-//     double p = get_p_by_beam_parameters_alpha(alpha, F); // impact parameter по нижней границе
-//     double h = p + beam_radius;
-
-//     std::cout << "\t Focal length = " << F;
-//     if (plot_distortion) {std::cout << "\t k = " << distortion_k << "\t ampl = " << distortion_ampl;}
-//     std::cout << std::endl;
-
-//     Position p_focus = {0.0, 0.0, 0.0};
-
-//     ParabolicSurface mirror1(
-//         {0.0, 0.0, -F},
-//         {1.0, 0.0, 0.0},
-//         {0.0, 1.0, 0.0},
-//         4.0*F, 4.0*F
-//     );
-
-//     ParabolicSurface mirror2(
-//         {0.0, 0.0, F},
-//         {-1.0, 0.0, 0.0},
-//         {0.0, 1.0, 0.0},
-//         4.0*F, 4.0*F
-//     );
-
-//     PlaneSurface beam_profile({0.0, 0.0, 30.0}, {1.0, 0.0, 0.0}, {0.0, -1.0, 0.0});
-
-//     Vector distortion_direction = mirror1.dS_over_dxdy({h, 0.0});
-//     distortion_direction /= distortion_direction.norm();
-
-//     double dist_kx =     distortion_k / sqrt(5);
-//     double dist_ky = 2 * distortion_k / sqrt(5);
-//     dist_kx /= distortion_direction[2];
-
-//     std::vector<SurfaceDistortionHarmonic::DistortionHarmonic> harmonics;
-
-//     SurfaceDistortionHarmonic::DistortionHarmonic h1 = { .ampl = distortion_ampl, .kx = dist_kx, .ky = dist_ky};
-// //    SurfaceDistortion::DistortionHarmonic h2 = {distortion_ampl, dist_kx*1.3, dist_ky*0.09};
-// //    SurfaceDistortion::DistortionHarmonic h3 = {distortion_ampl, dist_kx*3.2, dist_ky*0.7};
-//     harmonics.push_back(h1);
-// //    harmonics.push_back(h2);
-// //    harmonics.push_back(h3);
-
-//     SurfaceDistortionHarmonic mirror1dist(mirror1, distortion_direction, harmonics);
-
-//     // Параметры для гауссова пучка, той же дисперсии, что и _|¯¯¯|_, и чтобы в нём энергии как в _|¯¯¯|_
-//     // double sigma = beam_radius / 2;
-//     double sigma = beam_radius;
-//     double gauss_A = 1;
+void plot_field_on_given_surface(
+        const ISurface& surface,
+        const IField& field,
+        const SurfaceRegion& region,
+        // double phase,
+        int n_points,
+        const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
+{
+    VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
+    VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    // В тау-тау-эн;
+    VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    using Threads = ThreadPool<std::function<void()>>;
+    Threads::TaskQueue tasks;
+
+    for (int i = 0; i < n_points; i++)
+    {
+        for (int j = 0; j < n_points; j++)
+        {
+            tasks.push([&region, &field, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, i, j](){
+                Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
+                Position p = surface.point(xy);
+                FieldValue field_value = field.get(p);
+                //std::cout << "point ready" << std::endl;
+                // field_value.E *=  exp(std::complex<double>(0.0, 1.0) * phase);
+
+                vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
+                vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
+                vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
+
+                FieldValue field_rotated;
+                field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
+                field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
+                field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
+
+                vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
+                vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
+            });
+        }
+    }
+    Threads threads{tasks};
+    threads.run();
+
+    vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
+    vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
+    vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
+
+    vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
+    vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
+}
+
+void plot_field_on_given_surface_mod(
+        const ISurface& surface,
+        const IField& field,
+        const SurfaceRegion& region,
+        double phase,
+        int n_points,
+        const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
+{
+    VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
+    VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    // В тау-тау-эн;
+    VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    using Threads = ThreadPool<std::function<void()>>;
+    Threads::TaskQueue tasks;
+
+    for (int i = 0; i < n_points; i++)
+    {
+        for (int j = 0; j < n_points; j++)
+        {
+            tasks.push([&region, &field, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, i, j, phase](){
+                Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
+                Position p = surface.point(xy);
+                FieldValue field_value = field.get(p);
+                //std::cout << "point ready" << std::endl;
+                field_value.E *=  exp(std::complex<double>(0.0, 1.0) * phase);
+
+                vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
+                vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
+                vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
+
+                FieldValue field_rotated;
+                field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
+                field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
+                field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
+
+                vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
+                vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
+            });
+        }
+    }
+    Threads threads{tasks};
+    threads.run();
+
+    vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
+    vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
+    vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
+
+    vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
+    vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
+}
+
+//с учётом времени
+void plot_field_on_given_surface_with_time(
+        const ISurface& surface,
+        const SpecIFT& field,
+        const SurfaceRegion& region,
+        int n_points,
+        double timing,
+        const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
+{
+    VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
+    VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    // В тау-тау-эн;
+    VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    using Threads = ThreadPool<std::function<void()>>;
+    Threads::TaskQueue tasks;
+
+    for (int i = 0; i < n_points; i++)
+    {
+        for (int j = 0; j < n_points; j++)
+        {
+            tasks.push([&region, &field, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, timing, i, j](){
+                Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
+                Position p = surface.point(xy);
+                FieldValue field_value = field.get(p, timing);
+                //std::cout << "point ready "<< i << "," << j << std::endl;
+
+                vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
+                vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
+                vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
+
+                FieldValue field_rotated;
+                field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
+                field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
+                field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
+
+                vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
+                vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
+            });
+        }
+    }
+    Threads threads{tasks};
+    threads.run();
+
+    vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
+    vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
+    vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
+
+    vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
+    vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
+}
+
+
+//с учётом времени (3d array method)
+void plot_field_on_given_surface_with_time_3darr(
+        const ISurface& surface,
+        const SurfaceRegion& region,
+        auto& fields, //FieldsInRegion<>& fields;
+        std::vector<double> &freqs,
+        std::vector<std::complex<double>> &amplF,
+        int n_points,
+        double timing,
+        const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
+{
+    VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
+    VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    // В тау-тау-эн;
+    VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    fields.constructSummary(freqs, amplF, timing);
+
+    using Threads = ThreadPool<std::function<void()>>;
+    Threads::TaskQueue tasks;
+
+    for (int i = 0; i < n_points; i++)
+    {
+        for (int j = 0; j < n_points; j++)
+        {
+            tasks.push([&region, &fields, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_surf_r, &vtk_saver_surf_m, n_points, timing, i, j](){
+                Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
+                Position p = surface.point(xy);
+                FieldValue field_value = fields.getSummary(i, j);
+                //std::cout << "point ready "<< i << "," << j << std::endl;
+
+                vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
+                vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
+                vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
+
+                FieldValue field_rotated;
+                field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
+                field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
+                field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
+
+                vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
+                vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
+            });
+        }
+    }
+    Threads threads{tasks};
+    threads.run();
+
+    vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
+    vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
+    vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
+
+    vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
+    vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
+}
+
+//3d array method
+void plot_field_on_given_surface_3darr(
+        const ISurface& surface,
+        const SurfaceRegion& region,
+        auto& fields, //FieldsInRegion<>& fields;
+        // std::vector<double> &phases,
+        // size_t iter,
+        int n_points,
+        const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
+{
+    VTKSurfaceSaver vtk_saver_r(n_points, n_points, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_i(n_points, n_points, (quantity_name + "_imag").c_str());
+    VTKSurfaceSaver vtk_saver_m(n_points, n_points, (quantity_name + "_max").c_str());
+    VTKSurfaceSaver vtk_saver_int(n_points, n_points, (quantity_name + "_intens").c_str());
+
+    // // В тау-тау-эн;
+    // VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
+    // VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    using Threads = ThreadPool<std::function<void()>>;
+    Threads::TaskQueue tasks;
+
+    for (int i = 0; i < n_points; i++)
+    {
+        for (int j = 0; j < n_points; j++)
+        {
+            tasks.push([&region, &fields, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_int, /*&vtk_saver_surf_m,*/ n_points,  i, j/*, iter*/](){
+                Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
+                Position p = surface.point(xy);
+                FieldValue field_value = fields.getSummary(i, j);
+                // FieldValue field_value = fields.getHarmonic(iter, i, j);
+                //std::cout << "point ready "<< i << "," << j << std::endl;
+
+                vtk_saver_r.set_point(i, j, p, vec_real(field_value.E));
+                vtk_saver_i.set_point(i, j, p, vec_imag(field_value.E));
+                vtk_saver_m.set_point(i, j, p, max_field(field_value.E));
+
+                double absE;
+                Vector ves;
+                absE=0.0;
+                ves=max_field(field_value.E);
+                for (size_t l=0;l<3;l++){
+                    absE+=ves[l]*ves[l];
+                }
+                absE=absE*4e13;
+                ves[0]=absE;
+                ves[1]=0;
+                ves[2]=0;
+                vtk_saver_int.set_point(i, j, p, ves);
+
+                // FieldValue field_rotated;
+                // field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
+                // field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
+                // field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
+
+                // vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
+                // vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
+            });
+        }
+    }
+    Threads threads{tasks};
+    threads.run();
+
+    vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
+    vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
+    vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
+    vtk_saver_int.save((filename_prefix + "_intens_" + filename_suffix).c_str());
+
+    // vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
+    // vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
+}
+
+void plot_field_on_given_surface_3darr_1(
+        const ISurface& surface,
+        const SurfaceRegion& region,
+        auto& fields, //FieldsInRegion<>& fields;
+        // std::vector<double> &phases,
+        // size_t iter,
+        int n_points,
+        const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
+{
+    VTKSurfaceSaver vtk_saver_r(55, 55, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_i(55, 55, (quantity_name + "_imag").c_str());
+    VTKSurfaceSaver vtk_saver_m(55, 55, (quantity_name + "_max").c_str());
+    VTKSurfaceSaver vtk_saver_int(55, 55, (quantity_name + "_intens").c_str());
+
+    // // В тау-тау-эн;
+    // VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
+    // VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    using Threads = ThreadPool<std::function<void()>>;
+    Threads::TaskQueue tasks;
+
+    for (int i = 123; i < 178; i++)
+    {
+        for (int j = 123; j < 178; j++)
+        {
+            tasks.push([&region, &fields, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_int, /*&vtk_saver_surf_m,*/ n_points,  i, j/*, iter*/](){
+                Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
+                Position p = surface.point(xy);
+                FieldValue field_value = fields.getSummary(i, j);
+                // FieldValue field_value = fields.getHarmonic(iter, i, j);
+                //std::cout << "point ready "<< i << "," << j << std::endl;
+
+                vtk_saver_r.set_point(i-123, j-123, p, vec_real(field_value.E));
+                vtk_saver_i.set_point(i-123, j-123, p, vec_imag(field_value.E));
+                vtk_saver_m.set_point(i-123, j-123, p, max_field(field_value.E));
+
+                double absE;
+                Vector ves;
+                absE=0.0;
+                ves=max_field(field_value.E);
+                for (size_t l=0;l<3;l++){
+                    absE+=ves[l]*ves[l];
+                }
+                absE=absE*4e13*50/16;
+                ves[0]=absE;
+                ves[1]=0;
+                ves[2]=0;
+                vtk_saver_int.set_point(i-123, j-123, p, ves);
+
+                // FieldValue field_rotated;
+                // field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
+                // field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
+                // field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
+
+                // vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
+                // vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
+            });
+        }
+    }
+    Threads threads{tasks};
+    threads.run();
+
+    vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
+    vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
+    vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
+    vtk_saver_int.save((filename_prefix + "_intens_" + filename_suffix).c_str());
+
+    // vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
+    // vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
+}
+
+void plot_field_on_given_surface_3darr_2(
+        const ISurface& surface,
+        const SurfaceRegion& region,
+        auto& fields, //FieldsInRegion<>& fields;
+        // std::vector<double> &phases,
+        // size_t iter,
+        int n_points,
+        const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
+{
+    VTKSurfaceSaver vtk_saver_r(45, 45, (quantity_name + "_real").c_str());
+    VTKSurfaceSaver vtk_saver_i(45, 45, (quantity_name + "_imag").c_str());
+    VTKSurfaceSaver vtk_saver_m(45, 45, (quantity_name + "_max").c_str());
+    VTKSurfaceSaver vtk_saver_int(45, 45, (quantity_name + "_intens").c_str());
+
+    // // В тау-тау-эн;
+    // VTKSurfaceSaver vtk_saver_surf_r(n_points, n_points, (quantity_name + "_real").c_str());
+    // VTKSurfaceSaver vtk_saver_surf_m(n_points, n_points, (quantity_name + "_max").c_str());
+
+    using Threads = ThreadPool<std::function<void()>>;
+    Threads::TaskQueue tasks;
+
+    for (int i = 78; i < 123; i++)
+    {
+        for (int j = 78; j < 123; j++)
+        {
+            tasks.push([&region, &fields, &surface, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_int, /*&vtk_saver_surf_m,*/ n_points,  i, j/*, iter*/](){
+                Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
+                Position p = surface.point(xy);
+                FieldValue field_value = fields.getSummary(i, j);
+                // FieldValue field_value = fields.getHarmonic(iter, i, j);
+                //std::cout << "point ready "<< i << "," << j << std::endl;
+
+                vtk_saver_r.set_point(i-78, j-78, p, vec_real(field_value.E));
+                vtk_saver_i.set_point(i-78, j-78, p, vec_imag(field_value.E));
+                vtk_saver_m.set_point(i-78, j-78, p, max_field(field_value.E));
+
+                double absE;
+                Vector ves;
+                absE=0.0;
+                ves=max_field(field_value.E);
+                for (size_t l=0;l<3;l++){
+                    absE+=ves[l]*ves[l];
+                }
+                absE=absE*4e13*50/16;
+                ves[0]=absE;
+                ves[1]=0;
+                ves[2]=0;
+                vtk_saver_int.set_point(i-78, j-78, p, ves);
+
+                // FieldValue field_rotated;
+                // field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
+                // field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
+                // field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
+
+                // vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
+                // vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
+            });
+        }
+    }
+    Threads threads{tasks};
+    threads.run();
+
+    vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
+    vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
+    vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
+    vtk_saver_int.save((filename_prefix + "_intens_" + filename_suffix).c_str());
+
+    // vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
+    // vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
+}
+
+void plot_field_in_given_area_3darr(
+        const IVolume& volume,
+        const VolumeRegion& region,
+        auto& fields, //FieldsInRegion<>& fields;
+        // std::vector<double> &phases,
+        // size_t iter,
+        int n_points,
+        const std::string& quantity_name, const std::string& filename_prefix, const std::string& filename_suffix)
+{
+    VTKVolumeSaver vtk_saver_r(n_points, n_points, n_points, (quantity_name + "_real").c_str());
+    VTKVolumeSaver vtk_saver_i(n_points, n_points, n_points, (quantity_name + "_imag").c_str());
+    VTKVolumeSaver vtk_saver_m(n_points, n_points, n_points, (quantity_name + "_max").c_str());
+    VTKVolumeSaver vtk_saver_int(n_points, n_points, n_points, (quantity_name + "_intens").c_str());
+
+    using Threads = ThreadPool<std::function<void()>>;
+    Threads::TaskQueue tasks;
+
+    for (int k = 0; k < n_points; k++)
+    {
+        for (int i = 0; i < n_points; i++)
+        {
+            for (int j = 0; j < n_points; j++)
+            {
+                tasks.push([&region, &fields, &volume, &vtk_saver_r, &vtk_saver_i, &vtk_saver_m, &vtk_saver_int, /*&vtk_saver_surf_m,*/ n_points,  i, j, k/*, iter*/](){
+                    Vector xyz(region.x_min + region.widthx() / (n_points-1) * i, region.y_min + region.widthy() / (n_points-1) * j, region.z_min + region.height() / (n_points-1) * k);
+                    Position p = volume.point(xyz);
+                    FieldValue field_value = fields.getSummary(i, j, k);
+                    // FieldValue field_value = fields.getHarmonic(iter, i, j);
+                    //std::cout << "point ready "<< i << "," << j << std::endl;
+
+                    vtk_saver_r.set_point(i, j, k, p, vec_real(field_value.E));
+                    vtk_saver_i.set_point(i, j, k, p, vec_imag(field_value.E));
+                    vtk_saver_m.set_point(i, j, k, p, max_field(field_value.E));
+
+                    double absE;
+                    Vector ves;
+                    absE=0.0;
+                    ves=max_field(field_value.E);
+                    for (size_t l=0;l<3;l++){
+                        absE+=ves[l]*ves[l];
+                    }
+                    absE=absE*4e13*50/16;
+                    ves[0]=absE;
+                    ves[1]=0;
+                    ves[2]=0;
+                    vtk_saver_int.set_point(i, j, k, p, ves);
+
+                    // FieldValue field_rotated;
+                    // field_rotated.E[0] = projection(field_value.E, surface.tau1(xy));
+                    // field_rotated.E[1] = projection(field_value.E, surface.tau2(xy));
+                    // field_rotated.E[2] = projection(field_value.E, surface.dS_over_dxdy(xy));
+
+                    // vtk_saver_surf_r.set_point(i, j, p, vec_real(field_rotated.E));
+                    // vtk_saver_surf_m.set_point(i, j, p, max_field(field_rotated.E));
+                });
+            }
+        }
+    }
+    Threads threads{tasks};
+    threads.run();
+
+    vtk_saver_r.save((filename_prefix + "_real_" + filename_suffix).c_str());
+    vtk_saver_i.save((filename_prefix + "_imag_" + filename_suffix).c_str());
+    vtk_saver_m.save((filename_prefix + "_max_" + filename_suffix).c_str());
+    vtk_saver_int.save((filename_prefix + "_intens_" + filename_suffix).c_str());
+
+    // vtk_saver_surf_r.save((filename_prefix + "_real_" + "surf_coords_" + filename_suffix).c_str());
+    // vtk_saver_surf_m.save((filename_prefix + "_max_" + "surf_coords_" + filename_suffix).c_str());
+}
+
+void plot_two_beams_by_given_alpha_and_phi(double alpha, double phi, bool two_beams = false, bool plot_distortion = false,
+                                           double distortion_ampl = 0, double distortion_k = 2*M_PI/lambda)
+{
+    std::cout << "Plotting for alpha = " << alpha << "\t phi = " << phi;
+
+    double F = get_F_by_beam_parameters_alpha(alpha, phi, beam_width);
+    double p = get_p_by_beam_parameters_alpha(alpha, F); // impact parameter по нижней границе
+    double h = p + beam_radius;
+
+    std::cout << "\t Focal length = " << F;
+    if (plot_distortion) {std::cout << "\t k = " << distortion_k << "\t ampl = " << distortion_ampl;}
+    std::cout << std::endl;
+
+    Position p_focus = {0.0, 0.0, 0.0};
+
+    ParabolicSurface mirror1(
+        {0.0, 0.0, -F},
+        {1.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0},
+        4.0*F, 4.0*F
+    );
+
+    ParabolicSurface mirror2(
+        {0.0, 0.0, F},
+        {-1.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0},
+        4.0*F, 4.0*F
+    );
+
+    PlaneSurface beam_profile({0.0, 0.0, 30.0}, {1.0, 0.0, 0.0}, {0.0, -1.0, 0.0});
+
+    Vector distortion_direction = mirror1.dS_over_dxdy({h, 0.0});
+    distortion_direction /= distortion_direction.norm();
+
+    double dist_kx =     distortion_k / sqrt(5);
+    double dist_ky = 2 * distortion_k / sqrt(5);
+    dist_kx /= distortion_direction[2];
+
+    std::vector<SurfaceDistortionHarmonic::DistortionHarmonic> harmonics;
+
+    SurfaceDistortionHarmonic::DistortionHarmonic h1 = { .ampl = distortion_ampl, .kx = dist_kx, .ky = dist_ky};
+//    SurfaceDistortion::DistortionHarmonic h2 = {distortion_ampl, dist_kx*1.3, dist_ky*0.09};
+//    SurfaceDistortion::DistortionHarmonic h3 = {distortion_ampl, dist_kx*3.2, dist_ky*0.7};
+    harmonics.push_back(h1);
+//    harmonics.push_back(h2);
+//    harmonics.push_back(h3);
+
+    SurfaceDistortionHarmonic mirror1dist(mirror1, distortion_direction, harmonics);
+
+    // Параметры для гауссова пучка, той же дисперсии, что и _|¯¯¯|_, и чтобы в нём энергии как в _|¯¯¯|_
+    // double sigma = beam_radius / 2;
+    double sigma = beam_radius;
+    double gauss_A = 1;
     
-//     ParallelBeamAlpha beam1(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, -1.0, 0.0},
-//                             // [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(sigma)) ); },
-//                             [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 - h,12) + pow(x2,12)) / (2 * pow(sigma, 12)) ); },
-//                             //[h](double x1, double x2) { return sqr(x1 - h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
-//                             //[h](double x1, double x2) { return smoothed(sqrt(sqr(x1 - h) + sqr(x2)), beam_radius); },
-//                             [](double, double) { return 0.0; });
+    ParallelBeamAlpha beam1(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, -1.0, 0.0},
+                            // [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(sigma)) ); },
+                            [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 - h,12) + pow(x2,12)) / (2 * pow(sigma, 12)) ); },
+                            //[h](double x1, double x2) { return sqr(x1 - h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
+                            //[h](double x1, double x2) { return smoothed(sqrt(sqr(x1 - h) + sqr(x2)), beam_radius); },
+                            [](double, double) { return 0.0; });
 
-//     ParallelBeamAlpha beam2(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
-//                             [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(sigma)) ); },
-//                             //[h](double x1, double x2) { return sqr(x1 + h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
-//                             //[h](double x1, double x2) { return smoothed(sqrt(sqr(x1 + h) + sqr(x2)), beam_radius); },
-//                             [](double, double) { return 0.0; });
+    ParallelBeamAlpha beam2(lambda, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
+                            [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(sigma)) ); },
+                            //[h](double x1, double x2) { return sqr(x1 + h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
+                            //[h](double x1, double x2) { return smoothed(sqrt(sqr(x1 + h) + sqr(x2)), beam_radius); },
+                            [](double, double) { return 0.0; });
 
-//     double mirror_radius = 3 * sigma;
-//     //double mirror_radius = beam_radius;
-//     //double mirror_radius = beam_radius + 0.1;
+    double mirror_radius = 3 * sigma;
+    //double mirror_radius = beam_radius;
+    //double mirror_radius = beam_radius + 0.1;
 
-//     SurfaceRegion region1;
-//     region1.x_min = h - mirror_radius;
-//     region1.x_max = h + mirror_radius;
-//     region1.y_min = 0.0 - mirror_radius;
-//     region1.y_max = 0.0 + mirror_radius;
+    SurfaceRegion region1;
+    region1.x_min = h - mirror_radius;
+    region1.x_max = h + mirror_radius;
+    region1.y_min = 0.0 - mirror_radius;
+    region1.y_max = 0.0 + mirror_radius;
 
-//     SurfaceRegion region2; //           Почему не минус h ???
-//     region2.x_min = h - mirror_radius;
-//     region2.x_max = h + mirror_radius;
-//     region2.y_min = 0.0 - mirror_radius;
-//     region2.y_max = 0.0 + mirror_radius;
+    SurfaceRegion region2; //           Почему не минус h ???
+    region2.x_min = h - mirror_radius;
+    region2.x_max = h + mirror_radius;
+    region2.y_min = 0.0 - mirror_radius;
+    region2.y_max = 0.0 + mirror_radius;
 
-//     SurfaceRegion region_profile;
-//     region_profile.x_min = h - 1.1 * mirror_radius;
-//     region_profile.x_max = h + 1.1 * mirror_radius;
-//     region_profile.y_min = 0.0 - 1.1 * mirror_radius;
-//     region_profile.y_max = 0.0 + 1.1 * mirror_radius;
+    SurfaceRegion region_profile;
+    region_profile.x_min = h - 1.1 * mirror_radius;
+    region_profile.x_max = h + 1.1 * mirror_radius;
+    region_profile.y_min = 0.0 - 1.1 * mirror_radius;
+    region_profile.y_max = 0.0 + 1.1 * mirror_radius;
 
-//     StrattonChuReflection reflection1(mirror1, beam1, region1);
-//     StrattonChuReflection reflection1dist(mirror1dist, beam1, region1);
-//     StrattonChuReflection reflection2(mirror2, beam2, region2);
+    StrattonChuReflection reflection1(mirror1, beam1, region1);
+    StrattonChuReflection reflection1dist(mirror1dist, beam1, region1);
+    StrattonChuReflection reflection2(mirror2, beam2, region2);
 
-//     PlaneSurface focal_plane( p_focus, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0} );
-//     SurfaceRegion focal_region;
-//     focal_region.x_min = 0.0 - 12 * lambda;
-//     focal_region.x_max = 0.0 + 12 * lambda;
-//     focal_region.y_min = 0.0 - 12 * lambda;
-//     focal_region.y_max = 0.0 + 12 * lambda;
-//     int focal_points = 301;
+    PlaneSurface focal_plane( p_focus, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0} );
+    SurfaceRegion focal_region;
+    focal_region.x_min = 0.0 - 12 * lambda;
+    focal_region.x_max = 0.0 + 12 * lambda;
+    focal_region.y_min = 0.0 - 12 * lambda;
+    focal_region.y_max = 0.0 + 12 * lambda;
+    int focal_points = 301;
 
-//     Vector direction_vector = p_focus - mirror1.point({h, 0.0});
-//     direction_vector /= direction_vector.norm();
+    Vector direction_vector = p_focus - mirror1.point({h, 0.0});
+    direction_vector /= direction_vector.norm();
 
-//     PlaneSurface focal_plane_transversal( p_focus, {0.0, 1.0, 0.0}, Vector(0.0, 1.0, 0.0) % direction_vector );
-//     SurfaceRegion focal_region_transversal;
-//     focal_region_transversal.x_min = 0.0 - 10 * lambda;
-//     focal_region_transversal.x_max = 0.0 + 10 * lambda;
-//     focal_region_transversal.y_min = 0.0 - 10 * lambda;
-//     focal_region_transversal.y_max = 0.0 + 10 * lambda;
-//     int focal_points_transversal = 201;
-
-
-//     std::string filename_suffix = "alpha-";
-//     filename_suffix += std::to_string(int(alpha*100));
-//     //std::string filename_suffix = "k-";
-//     //filename_suffix += std::to_string(int(distortion_k*10));
-//     //std::string filename_suffix = "ampl-";
-//     //filename_suffix += std::to_string(int(distortion_ampl*1.0e7));
+    PlaneSurface focal_plane_transversal( p_focus, {0.0, 1.0, 0.0}, Vector(0.0, 1.0, 0.0) % direction_vector );
+    SurfaceRegion focal_region_transversal;
+    focal_region_transversal.x_min = 0.0 - 10 * lambda;
+    focal_region_transversal.x_max = 0.0 + 10 * lambda;
+    focal_region_transversal.y_min = 0.0 - 10 * lambda;
+    focal_region_transversal.y_max = 0.0 + 10 * lambda;
+    int focal_points_transversal = 201;
 
 
-//     plot_field_on_given_surface(beam_profile, beam1, region_profile, 300, "E", "beam_profile", filename_suffix);
-//     std::cout << "beam profile plotted" << std::endl;
+    std::string filename_suffix = "alpha-";
+    filename_suffix += std::to_string(int(alpha*100));
+    //std::string filename_suffix = "k-";
+    //filename_suffix += std::to_string(int(distortion_k*10));
+    //std::string filename_suffix = "ampl-";
+    //filename_suffix += std::to_string(int(distortion_ampl*1.0e7));
 
-//     plot_field_on_given_surface(mirror1, beam1, region1, 100, "E", "mirror1", filename_suffix);
-//     std::cout << "mirror1 plotted" << std::endl;
-//     if (plot_distortion)
-//     {
-//         plot_field_on_given_surface(mirror1dist, beam1, region1, 100, "E", "mirror1_dist", filename_suffix);
-//         std::cout << "mirror1dist plotted" << std::endl;
-//     }
-//     if (two_beams)
-//     {
-//         plot_field_on_given_surface(mirror2, beam2, region2, 100, "E", "mirror2", filename_suffix);
-//         std::cout << "mirror2 plotted" << std::endl;
-//     }
 
-//     plot_field_on_given_surface(focal_plane, reflection1, focal_region, focal_points, "E1", "longitudinal_E1", filename_suffix);
-//     std::cout << "longitudinal_E1 plotted" << std::endl;
-//     if (plot_distortion)
-//     {
-//         plot_field_on_given_surface(focal_plane, reflection1dist, focal_region, focal_points, "E1", "longitudinal_E1_dist", filename_suffix);
-//         std::cout << "longitudinal_E1_dist plotted" << std::endl;
-//     }
-//     if (two_beams)
-//     {
-//         plot_field_on_given_surface(focal_plane, reflection2, focal_region, focal_points, "E2", "longitudinal_E2", filename_suffix);
-//         std::cout << "longitudinal_E2 plotted" << std::endl;
-//     }
+    plot_field_on_given_surface(beam_profile, beam1, region_profile, 300, "E", "beam_profile", filename_suffix);
+    std::cout << "beam profile plotted" << std::endl;
 
-//     plot_field_on_given_surface(focal_plane_transversal, reflection1, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
-//     std::cout << "transversal_E1 plotted" << std::endl;
-//     if (plot_distortion)
-//     {
-//         plot_field_on_given_surface(focal_plane_transversal, reflection1dist, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1_dist", filename_suffix);
-//         std::cout << "transversal_E1_dist plotted" << std::endl;
-//     }
-//     if (two_beams)
-//     {
-//         plot_field_on_given_surface(focal_plane_transversal, reflection2, focal_region_transversal, focal_points_transversal, "E2", "transversal_E2", filename_suffix);
-//         std::cout << "transversal_E2 plotted" << std::endl;
-//     }
-// }
+    plot_field_on_given_surface(mirror1, beam1, region1, 100, "E", "mirror1", filename_suffix);
+    std::cout << "mirror1 plotted" << std::endl;
+    if (plot_distortion)
+    {
+        plot_field_on_given_surface(mirror1dist, beam1, region1, 100, "E", "mirror1_dist", filename_suffix);
+        std::cout << "mirror1dist plotted" << std::endl;
+    }
+    if (two_beams)
+    {
+        plot_field_on_given_surface(mirror2, beam2, region2, 100, "E", "mirror2", filename_suffix);
+        std::cout << "mirror2 plotted" << std::endl;
+    }
 
-// void plot_two_beams_by_given_alpha_and_phi_mod(double alpha, double p, size_t beams_number, size_t iter, bool two_beams = false, bool plot_distortion = false,
-//                                            double distortion_ampl = 0, double distortion_k = 2*M_PI/lambda)
-// {
-//     std::cout << "Plotting for alpha = " << alpha;
+    plot_field_on_given_surface(focal_plane, reflection1, focal_region, focal_points, "E1", "longitudinal_E1", filename_suffix);
+    std::cout << "longitudinal_E1 plotted" << std::endl;
+    if (plot_distortion)
+    {
+        plot_field_on_given_surface(focal_plane, reflection1dist, focal_region, focal_points, "E1", "longitudinal_E1_dist", filename_suffix);
+        std::cout << "longitudinal_E1_dist plotted" << std::endl;
+    }
+    if (two_beams)
+    {
+        plot_field_on_given_surface(focal_plane, reflection2, focal_region, focal_points, "E2", "longitudinal_E2", filename_suffix);
+        std::cout << "longitudinal_E2 plotted" << std::endl;
+    }
+
+    plot_field_on_given_surface(focal_plane_transversal, reflection1, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
+    std::cout << "transversal_E1 plotted" << std::endl;
+    if (plot_distortion)
+    {
+        plot_field_on_given_surface(focal_plane_transversal, reflection1dist, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1_dist", filename_suffix);
+        std::cout << "transversal_E1_dist plotted" << std::endl;
+    }
+    if (two_beams)
+    {
+        plot_field_on_given_surface(focal_plane_transversal, reflection2, focal_region_transversal, focal_points_transversal, "E2", "transversal_E2", filename_suffix);
+        std::cout << "transversal_E2 plotted" << std::endl;
+    }
+}
+
+void plot_two_beams_by_given_alpha_and_phi_mod(double alpha, double p, size_t beams_number, size_t iter, bool two_beams = false, bool plot_distortion = false,
+                                           double distortion_ampl = 0, double distortion_k = 2*M_PI/lambda)
+{
+    std::cout << "Plotting for alpha = " << alpha;
 
    
 
     
-//     double F = get_F_by_beam_parameters_alpha_and_p(alpha, p);
-//     double h = p + beam_radius;
+    double F = get_F_by_beam_parameters_alpha_and_p(alpha, p);
+    double h = p + beam_radius;
 
-//     std::cout << "\t Focal length = " << F;
-//     if (plot_distortion) {std::cout << "\t k = " << distortion_k << "\t ampl = " << distortion_ampl;}
-//     std::cout << std::endl;
+    std::cout << "\t Focal length = " << F;
+    if (plot_distortion) {std::cout << "\t k = " << distortion_k << "\t ampl = " << distortion_ampl;}
+    std::cout << std::endl;
 
-//     Position p_focus = {0.0, 0.0, 0.0};
+    Position p_focus = {0.0, 0.0, 0.0};
 
-//     ParabolicSurface mirror1(
-//         {0.0, 0.0, -F},
-//         {1.0*cos(2*M_PI/beams_number*iter), 1.0*sin(2*M_PI/beams_number*iter), 0.0},
-//         {-1.0*sin(2*M_PI/beams_number*iter), 1.0*cos(2*M_PI/beams_number*iter), 0.0},
-//         4.0*F, 4.0*F
-//     );
+    ParabolicSurface mirror1(
+        {0.0, 0.0, -F},
+        {1.0*cos(2*M_PI/beams_number*iter), 1.0*sin(2*M_PI/beams_number*iter), 0.0},
+        {-1.0*sin(2*M_PI/beams_number*iter), 1.0*cos(2*M_PI/beams_number*iter), 0.0},
+        4.0*F, 4.0*F
+    );
 
-//     ParabolicSurface mirror2(
-//         {0.0, 0.0, F},
-//         {-1.0*cos(2*M_PI/beams_number*iter), -1.0*sin(2*M_PI/beams_number*iter), 0.0},
-//         {-1.0*sin(2*M_PI/beams_number*iter), 1.0*cos(2*M_PI/beams_number*iter), 0.0},
-//         4.0*F, 4.0*F
-//     );
+    ParabolicSurface mirror2(
+        {0.0, 0.0, F},
+        {-1.0*cos(2*M_PI/beams_number*iter), -1.0*sin(2*M_PI/beams_number*iter), 0.0},
+        {-1.0*sin(2*M_PI/beams_number*iter), 1.0*cos(2*M_PI/beams_number*iter), 0.0},
+        4.0*F, 4.0*F
+    );
 
-//     PlaneSurface beam_profile({0.0, 0.0, 30.0}, {1.0*cos(2*M_PI/beams_number*iter), 1.0*sin(2*M_PI/beams_number*iter), 0.0}, {1.0*sin(2*M_PI/beams_number*iter), -1.0*cos(2*M_PI/beams_number*iter), 0.0});
+    PlaneSurface beam_profile({0.0, 0.0, 30.0}, {1.0*cos(2*M_PI/beams_number*iter), 1.0*sin(2*M_PI/beams_number*iter), 0.0}, {1.0*sin(2*M_PI/beams_number*iter), -1.0*cos(2*M_PI/beams_number*iter), 0.0});
 
-//     Vector distortion_direction = mirror1.dS_over_dxdy({h, 0.0});
-//     distortion_direction /= distortion_direction.norm();
+    Vector distortion_direction = mirror1.dS_over_dxdy({h, 0.0});
+    distortion_direction /= distortion_direction.norm();
 
-//     double dist_kx =     distortion_k / sqrt(5);
-//     double dist_ky = 2 * distortion_k / sqrt(5);
-//     dist_kx /= distortion_direction[2];
+    double dist_kx =     distortion_k / sqrt(5);
+    double dist_ky = 2 * distortion_k / sqrt(5);
+    dist_kx /= distortion_direction[2];
 
-//     std::vector<SurfaceDistortionHarmonic::DistortionHarmonic> harmonics;
+    std::vector<SurfaceDistortionHarmonic::DistortionHarmonic> harmonics;
 
-//     SurfaceDistortionHarmonic::DistortionHarmonic h1 = { .ampl = distortion_ampl, .kx = dist_kx, .ky = dist_ky};
-// //    SurfaceDistortion::DistortionHarmonic h2 = {distortion_ampl, dist_kx*1.3, dist_ky*0.09};
-// //    SurfaceDistortion::DistortionHarmonic h3 = {distortion_ampl, dist_kx*3.2, dist_ky*0.7};
-//     harmonics.push_back(h1);
-// //    harmonics.push_back(h2);
-// //    harmonics.push_back(h3);
+    SurfaceDistortionHarmonic::DistortionHarmonic h1 = { .ampl = distortion_ampl, .kx = dist_kx, .ky = dist_ky};
+//    SurfaceDistortion::DistortionHarmonic h2 = {distortion_ampl, dist_kx*1.3, dist_ky*0.09};
+//    SurfaceDistortion::DistortionHarmonic h3 = {distortion_ampl, dist_kx*3.2, dist_ky*0.7};
+    harmonics.push_back(h1);
+//    harmonics.push_back(h2);
+//    harmonics.push_back(h3);
 
-//     SurfaceDistortionHarmonic mirror1dist(mirror1, distortion_direction, harmonics);
+    SurfaceDistortionHarmonic mirror1dist(mirror1, distortion_direction, harmonics);
 
-//     // Параметры для гауссова пучка, той же дисперсии, что и _|¯¯¯|_, и чтобы в нём энергии как в _|¯¯¯|_
-//     double sigma = beam_radius;
-//     double gauss_A = 2;
+    // Параметры для гауссова пучка, той же дисперсии, что и _|¯¯¯|_, и чтобы в нём энергии как в _|¯¯¯|_
+    double sigma = beam_radius;
+    double gauss_A = 2;
 
-//     ParallelBeamAlpha beam1(lambda, {0.0, 0.0, 0.0}, {1.0*cos(2*M_PI/beams_number*iter), 1.0*sin(2*M_PI/beams_number*iter), 0.0}, {1.0*sin(2*M_PI/beams_number*iter), -1.0*cos(2*M_PI/beams_number*iter), 0.0},
-//                             //  [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(sigma)) ); },
-//                             [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 - h,12) + pow(x2,12)) / (pow(sigma, 12)) ); },
-//                             //[h](double x1, double x2) { return sqr(x1 - h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
-//                             // [h](double x1, double x2) { return smoothed(sqrt(sqr(x1 - h) + sqr(x2)), beam_radius); },
-//                             [](double, double) { return 0.0; });
+    ParallelBeamAlpha beam1(lambda, {0.0, 0.0, 0.0}, {1.0*cos(2*M_PI/beams_number*iter), 1.0*sin(2*M_PI/beams_number*iter), 0.0}, {1.0*sin(2*M_PI/beams_number*iter), -1.0*cos(2*M_PI/beams_number*iter), 0.0},
+                            //  [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(sigma)) ); },
+                            [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 - h,12) + pow(x2,12)) / (pow(sigma, 12)) ); },
+                            //[h](double x1, double x2) { return sqr(x1 - h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
+                            // [h](double x1, double x2) { return smoothed(sqrt(sqr(x1 - h) + sqr(x2)), beam_radius); },
+                            [](double, double) { return 0.0; });
 
-//     ParallelBeamAlpha beam2(lambda, {0.0, 0.0, 0.0}, {1.0*cos(2*M_PI/beams_number*iter), 1.0*sin(2*M_PI/beams_number*iter), 0.0}, {-1.0*sin(2*M_PI/beams_number*iter), 1.0*cos(2*M_PI/beams_number*iter), 0.0},
-//                             //  [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(sigma)) ); },
-//                             [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 + h,12) + pow(x2,12)) / (pow(sigma, 12)) ); },
-//                             //[h](double x1, double x2) { return sqr(x1 + h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
-//                             // [h](double x1, double x2) { return smoothed(sqrt(sqr(x1 + h) + sqr(x2)), beam_radius); },
-//                             [](double, double) { return 0.0; });
+    ParallelBeamAlpha beam2(lambda, {0.0, 0.0, 0.0}, {1.0*cos(2*M_PI/beams_number*iter), 1.0*sin(2*M_PI/beams_number*iter), 0.0}, {-1.0*sin(2*M_PI/beams_number*iter), 1.0*cos(2*M_PI/beams_number*iter), 0.0},
+                            //  [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(sigma)) ); },
+                            [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 + h,12) + pow(x2,12)) / (pow(sigma, 12)) ); },
+                            //[h](double x1, double x2) { return sqr(x1 + h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
+                            // [h](double x1, double x2) { return smoothed(sqrt(sqr(x1 + h) + sqr(x2)), beam_radius); },
+                            [](double, double) { return 0.0; });
 
-//     double mirror_radius = 3 * sigma;
-//     //double mirror_radius = beam_radius;
-//     //double mirror_radius = beam_radius + 0.1;
+    double mirror_radius = 3 * sigma;
+    //double mirror_radius = beam_radius;
+    //double mirror_radius = beam_radius + 0.1;
 
-//     SurfaceRegion region1;
-//     region1.x_min = h - mirror_radius;
-//     region1.x_max = h + mirror_radius;
-//     region1.y_min = 0.0 - mirror_radius;
-//     region1.y_max = 0.0 + mirror_radius;
+    SurfaceRegion region1;
+    region1.x_min = h - mirror_radius;
+    region1.x_max = h + mirror_radius;
+    region1.y_min = 0.0 - mirror_radius;
+    region1.y_max = 0.0 + mirror_radius;
 
-//     SurfaceRegion region2; //           Почему не минус h ???
-//     region2.x_min = h - mirror_radius;
-//     region2.x_max = h + mirror_radius;
-//     region2.y_min = 0.0 - mirror_radius;
-//     region2.y_max = 0.0 + mirror_radius;
+    SurfaceRegion region2; //           Почему не минус h ???
+    region2.x_min = h - mirror_radius;
+    region2.x_max = h + mirror_radius;
+    region2.y_min = 0.0 - mirror_radius;
+    region2.y_max = 0.0 + mirror_radius;
 
-//     SurfaceRegion region_profile;
-//     region_profile.x_min = h - 1.1 * mirror_radius;
-//     region_profile.x_max = h + 1.1 * mirror_radius;
-//     region_profile.y_min = 0.0 - 1.1 * mirror_radius;
-//     region_profile.y_max = 0.0 + 1.1 * mirror_radius;
+    SurfaceRegion region_profile;
+    region_profile.x_min = h - 1.1 * mirror_radius;
+    region_profile.x_max = h + 1.1 * mirror_radius;
+    region_profile.y_min = 0.0 - 1.1 * mirror_radius;
+    region_profile.y_max = 0.0 + 1.1 * mirror_radius;
 
-//     // refs1.emplace_back(mirror1, beam1, region1);
-//     // refs2.emplace_back(mirror2, beam2, region2);
+    // refs1.emplace_back(mirror1, beam1, region1);
+    // refs2.emplace_back(mirror2, beam2, region2);
 
-//     StrattonChuReflection reflection1(mirror1, beam1, region1);
-//     StrattonChuReflection reflection1dist(mirror1dist, beam1, region1);
-//     StrattonChuReflection reflection2(mirror2, beam2, region2);
+    StrattonChuReflection reflection1(mirror1, beam1, region1);
+    StrattonChuReflection reflection1dist(mirror1dist, beam1, region1);
+    StrattonChuReflection reflection2(mirror2, beam2, region2);
 
-//     // PlaneSurface focal_plane( p_focus, {0.0, 0.0, 1.0}, {1.0*cos(M_PI/3*iter), 1.0*sin(M_PI/3*iter), 0.0} );
-//     PlaneSurface focal_plane( p_focus, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0} );
-//     SurfaceRegion focal_region;
-//     focal_region.x_min = 0.0 - 12 * lambda;
-//     focal_region.x_max = 0.0 + 12 * lambda;
-//     focal_region.y_min = 0.0 - 12 * lambda;
-//     focal_region.y_max = 0.0 + 12 * lambda;
-//     int focal_points = 301;
+    // PlaneSurface focal_plane( p_focus, {0.0, 0.0, 1.0}, {1.0*cos(M_PI/3*iter), 1.0*sin(M_PI/3*iter), 0.0} );
+    PlaneSurface focal_plane( p_focus, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0} );
+    SurfaceRegion focal_region;
+    focal_region.x_min = 0.0 - 12 * lambda;
+    focal_region.x_max = 0.0 + 12 * lambda;
+    focal_region.y_min = 0.0 - 12 * lambda;
+    focal_region.y_max = 0.0 + 12 * lambda;
+    int focal_points = 301;
 
-//     // Vector direction_vector = p_focus - mirror1.point({h, 0.0});
-//     // direction_vector /= direction_vector.norm();
+    // Vector direction_vector = p_focus - mirror1.point({h, 0.0});
+    // direction_vector /= direction_vector.norm();
 
-//     // PlaneSurface focal_plane_transversal( p_focus, {-1.0*sin(M_PI/3*iter), 1.0*cos(M_PI/3*iter), 0.0}, Vector(-1.0*sin(M_PI/3*iter), 1.0*cos(M_PI/3*iter), 0.0) % direction_vector );
-//     PlaneSurface focal_plane_transversal( p_focus, {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0} );
-//     SurfaceRegion focal_region_transversal;
-//     focal_region_transversal.x_min = 0.0 - 10 * lambda;
-//     focal_region_transversal.x_max = 0.0 + 10 * lambda;
-//     focal_region_transversal.y_min = 0.0 - 10 * lambda;
-//     focal_region_transversal.y_max = 0.0 + 10 * lambda;
-//     int focal_points_transversal = 201;
+    // PlaneSurface focal_plane_transversal( p_focus, {-1.0*sin(M_PI/3*iter), 1.0*cos(M_PI/3*iter), 0.0}, Vector(-1.0*sin(M_PI/3*iter), 1.0*cos(M_PI/3*iter), 0.0) % direction_vector );
+    PlaneSurface focal_plane_transversal( p_focus, {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0} );
+    SurfaceRegion focal_region_transversal;
+    focal_region_transversal.x_min = 0.0 - 10 * lambda;
+    focal_region_transversal.x_max = 0.0 + 10 * lambda;
+    focal_region_transversal.y_min = 0.0 - 10 * lambda;
+    focal_region_transversal.y_max = 0.0 + 10 * lambda;
+    int focal_points_transversal = 201;
 
 
-//     std::string filename_suffix = "alpha-";
-//     filename_suffix += std::to_string(int(alpha*100));
-//     filename_suffix += std::to_string(iter);
+    std::string filename_suffix = "alpha-";
+    filename_suffix += std::to_string(int(alpha*100));
+    filename_suffix += std::to_string(iter);
     
-//     //std::string filename_suffix = "k-";
-//     //filename_suffix += std::to_string(int(distortion_k*10));
-//     //std::string filename_suffix = "ampl-";
-//     //filename_suffix += std::to_string(int(distortion_ampl*1.0e7));
+    //std::string filename_suffix = "k-";
+    //filename_suffix += std::to_string(int(distortion_k*10));
+    //std::string filename_suffix = "ampl-";
+    //filename_suffix += std::to_string(int(distortion_ampl*1.0e7));
 
 
-//     // plot_field_on_given_surface(beam_profile, beam1, region_profile, 300, "E", "beam_profile", filename_suffix);
-//     // std::cout << "beam profile plotted" << std::endl;
+    // plot_field_on_given_surface(beam_profile, beam1, region_profile, 300, "E", "beam_profile", filename_suffix);
+    // std::cout << "beam profile plotted" << std::endl;
 
-//     plot_field_on_given_surface(mirror1, beam1, region1, 100, "E", "mirror1", filename_suffix);
-//     std::cout << "mirror1 plotted" << std::endl;
-//     if (plot_distortion)
-//     {
-//         plot_field_on_given_surface(mirror1dist, beam1, region1, 100, "E", "mirror1_dist", filename_suffix);
-//         std::cout << "mirror1dist plotted" << std::endl;
-//     }
-//     if (two_beams)
-//     {
-//         plot_field_on_given_surface(mirror2, beam2, region2, 100, "E", "mirror2", filename_suffix);
-//         std::cout << "mirror2 plotted" << std::endl;
-//     }
-//     double phase1=0;
-//     double phase2=0;
-//     plot_field_on_given_surface_mod(focal_plane, reflection1, focal_region, phase1, focal_points, "E1", "longitudinal_E1", filename_suffix);
-//     std::cout << "longitudinal_E1 plotted" << std::endl;
-//     if (plot_distortion)
-//     {
-//         plot_field_on_given_surface(focal_plane, reflection1dist, focal_region, focal_points, "E1", "longitudinal_E1_dist", filename_suffix);
-//         std::cout << "longitudinal_E1_dist plotted" << std::endl;
-//     }
-//     if (two_beams)
-//     {
-//         plot_field_on_given_surface_mod(focal_plane, reflection2, focal_region, phase2, focal_points, "E2", "longitudinal_E2", filename_suffix);
-//         std::cout << "longitudinal_E2 plotted" << std::endl;
-//     }
+    plot_field_on_given_surface(mirror1, beam1, region1, 100, "E", "mirror1", filename_suffix);
+    std::cout << "mirror1 plotted" << std::endl;
+    if (plot_distortion)
+    {
+        plot_field_on_given_surface(mirror1dist, beam1, region1, 100, "E", "mirror1_dist", filename_suffix);
+        std::cout << "mirror1dist plotted" << std::endl;
+    }
+    if (two_beams)
+    {
+        plot_field_on_given_surface(mirror2, beam2, region2, 100, "E", "mirror2", filename_suffix);
+        std::cout << "mirror2 plotted" << std::endl;
+    }
+    double phase1=0;
+    double phase2=0;
+    plot_field_on_given_surface_mod(focal_plane, reflection1, focal_region, phase1, focal_points, "E1", "longitudinal_E1", filename_suffix);
+    std::cout << "longitudinal_E1 plotted" << std::endl;
+    if (plot_distortion)
+    {
+        plot_field_on_given_surface(focal_plane, reflection1dist, focal_region, focal_points, "E1", "longitudinal_E1_dist", filename_suffix);
+        std::cout << "longitudinal_E1_dist plotted" << std::endl;
+    }
+    if (two_beams)
+    {
+        plot_field_on_given_surface_mod(focal_plane, reflection2, focal_region, phase2, focal_points, "E2", "longitudinal_E2", filename_suffix);
+        std::cout << "longitudinal_E2 plotted" << std::endl;
+    }
 
-//     plot_field_on_given_surface_mod(focal_plane_transversal, reflection1, focal_region_transversal, phase1, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
-//     std::cout << "transversal_E1 plotted" << std::endl;
-//     if (plot_distortion)
-//     {
-//         plot_field_on_given_surface(focal_plane_transversal, reflection1dist, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1_dist", filename_suffix);
-//         std::cout << "transversal_E1_dist plotted" << std::endl;
-//     }
-//     if (two_beams)
-//     {
-//         plot_field_on_given_surface_mod(focal_plane_transversal, reflection2, focal_region_transversal, phase2, focal_points_transversal, "E2", "transversal_E2", filename_suffix);
-//         std::cout << "transversal_E2 plotted" << std::endl;
-//     }
-// }
+    plot_field_on_given_surface_mod(focal_plane_transversal, reflection1, focal_region_transversal, phase1, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
+    std::cout << "transversal_E1 plotted" << std::endl;
+    if (plot_distortion)
+    {
+        plot_field_on_given_surface(focal_plane_transversal, reflection1dist, focal_region_transversal, focal_points_transversal, "E1", "transversal_E1_dist", filename_suffix);
+        std::cout << "transversal_E1_dist plotted" << std::endl;
+    }
+    if (two_beams)
+    {
+        plot_field_on_given_surface_mod(focal_plane_transversal, reflection2, focal_region_transversal, phase2, focal_points_transversal, "E2", "transversal_E2", filename_suffix);
+        std::cout << "transversal_E2 plotted" << std::endl;
+    }
+}
 
 
 
@@ -1019,6 +1023,7 @@ int main(int argc, const char* argv[])
     std::cout << " phi = " << phi/M_PI*180; 
 
     std::cout << "\t Focal length = " << F;
+    // std::cout << "\t  " << p;
     std::cout << std::endl;
 
     double sigma = beam_radius;
@@ -1076,53 +1081,76 @@ int main(int argc, const char* argv[])
     Vector ax1m1, ax2m1, axFm1;
     Vector ax1m2, ax2m2, axFm2;
 
-    std::vector<double> mirr_adj;
-    mirr_adj.reserve(2*beams_number);
-    std::random_device dev0;
-    std::mt19937 rng0(dev0());
-    double sigma_mirr=std::atof(argv[2]);   
-    std::normal_distribution<double> dist0{0, sigma_mirr};
-    // std::string moves_file = "vert_moves_for_"+std::to_string(2*beams_number)+"_beams.txt";
-    std::string moves_file = "horiz_moves_for_"+std::to_string(2*beams_number)+"_beams.txt";
-    // std::string moves_file = "angz_moves_for_"+std::to_string(2*beams_number)+"_beams.txt";
-    // std::string moves_file = "angy_moves_for_"+std::to_string(2*beams_number)+"_beams.txt";
-    bool rread=false;
+// //mirr moves
+//     std::vector<double> mirr_adj;
+//     mirr_adj.reserve(2*beams_number);
+//     std::random_device dev0;
+//     std::mt19937 rng0(dev0());
+//     double sigma_mirr=std::atof(argv[2]);
 
-    std::ifstream inm(moves_file);
-    std::string line, firstline;
-    size_t ii=0;   
-    if (inm.is_open()){
-        rread=true;
-        getline (inm,firstline);
-        while (getline (inm,line)) {
-            mirr_adj[ii]=std::stod(line);
-            ii++;
-        }
-        inm.close();
-    } else {
-        std::cout << "Unable to open file" << '\n';
-    }
+//     std::normal_distribution<double> dist0{0, sigma_mirr};
+//     // std::string moves_file = "vert_moves_for_"+std::to_string(2*beams_number)+"_beams.txt";
+//     // std::string moves_file = "horiz_moves_for_"+std::to_string(2*beams_number)+"_beams.txt";
+//     std::string moves_file = "angz_moves_for_"+std::to_string(2*beams_number)+"_beams.txt";
+//     // std::string moves_file = "angy_moves_for_"+std::to_string(2*beams_number)+"_beams.txt";
+//     bool rread=false;
+
+//     std::ifstream inm(moves_file);
+//     std::string line, firstline;
+//     size_t ii=0;   
+//     if (inm.is_open()){
+//         rread=true;
+//         getline (inm,firstline);
+//         while (getline (inm,line)) {
+//             mirr_adj[ii]=std::stod(line);
+//             ii++;
+//         }
+//         inm.close();
+//     } else {
+//         std::cout << "Unable to open file" << '\n';
+//     }
 
 
-    std::ofstream outm(moves_file);
-    if (rread)
-    {
-        std::cout << "meow1" << std::endl;
-        outm << firstline << '\n';
-        for (size_t i=0;i<2*beams_number;i++){
-            outm << mirr_adj[i] << '\n';
-        } 
-    } else {
-        std::cout << "meow2" << std::endl;
-        outm << "for sigma = " <<  sigma_mirr << '\n';
-        for (size_t i=0;i<2*beams_number;i++){
-            mirr_adj[i]=dist0(rng0);
-            outm << mirr_adj[i] << '\n';
-        }
-    }
-    outm.close();
+//     std::ofstream outm(moves_file);
+//     if (rread)
+//     {
+//         std::cout << "meow1" << std::endl;
+//         outm << firstline << '\n';
+//         for (size_t i=0;i<2*beams_number;i++){
+//             outm << mirr_adj[i] << '\n';
+//         } 
+//     } else {
+//         std::cout << "meow2" << std::endl;
+//         outm << "for sigma = " <<  sigma_mirr << '\n';
+//         for (size_t i=0;i<2*beams_number;i++){
+//             mirr_adj[i]=dist0(rng0);
+//             outm << mirr_adj[i] << '\n';
+//         }
+//     }
+//     outm.close();
 
-    double theta0;
+//     double theta0;
+// //end of mirr_moves
+
+// Zernike aberrs
+    std::vector<double> sigma_poly(6);
+    sigma_poly[0]=M_PI/6;
+    sigma_poly[1]=M_PI/4;
+    sigma_poly[2]=M_PI/3;
+    sigma_poly[3]=M_PI/2;
+    sigma_poly[4]=M_PI;
+    sigma_poly[5]=2*M_PI;
+    int sig_ind=std::atoi(argv[2]);
+    std::cout << sigma_poly[sig_ind]/M_PI*180 << std::endl;
+
+    
+    // double sigma_poly=M_PI/6;
+    // double sigma_poly=M_PI/4;
+    // double sigma_poly=M_PI/2;
+    // double sigma_poly=M_PI;
+    // double sigma_poly=2*M_PI;
+    // double power_perc_to_side_modes=5;
+// end of Zernike aberrs 
 
     for (size_t i=0;i<beams_number;i++){
 
@@ -1301,7 +1329,10 @@ int main(int argc, const char* argv[])
         ax2m1=(ax1m1 % axFm1);
         ax2m1 /= ax2m1.norm();
         mirrors1.emplace_back(ParabolicSurface(
-            {(F+mirr_adj[i]/cos(gamma_med))*cos(gamma_med)*cos(2*M_PI/beams_number*i), (F+mirr_adj[i]/cos(gamma_med))*cos(gamma_med)*sin(2*M_PI/beams_number*i), -(F/*+mirr_adj[i]*/)*sin(gamma_med)/*+mirr_adj[i]*/},
+            {F*cos(gamma_med)*cos(2*M_PI/beams_number*i), F*cos(gamma_med)*sin(2*M_PI/beams_number*i), -F*sin(gamma_med)},
+            // {F*cos(gamma_med)*cos(2*M_PI/beams_number*i), F*cos(gamma_med)*sin(2*M_PI/beams_number*i), -F*sin(gamma_med)+mirr_adj[i]},
+            // {(F+mirr_adj[i]/cos(gamma_med))*cos(gamma_med)*cos(2*M_PI/beams_number*i), (F+mirr_adj[i]/cos(gamma_med))*cos(gamma_med)*sin(2*M_PI/beams_number*i), -F*sin(gamma_med)},
+            // {F*cos(gamma_med)*cos(2*M_PI/beams_number*i)-sin(2*M_PI/beams_number*i)*mirr_adj[i], F*cos(gamma_med)*sin(2*M_PI/beams_number*i)+cos(2*M_PI/beams_number*i)*mirr_adj[i], -F*sin(gamma_med)},
             ax1m1,ax2m1, 4.0*F, 4.0*F
         ));
 
@@ -1310,14 +1341,17 @@ int main(int argc, const char* argv[])
         ax2m2=(ax1m2 % axFm2);
         ax2m2 /= ax2m2.norm();
         mirrors2.emplace_back(ParabolicSurface(
-            {-(F+mirr_adj[i+beams_number]/cos(gamma_med))*cos(gamma_med)*cos(2*M_PI/beams_number*i+add_angle), -(F+mirr_adj[i+beams_number]/cos(gamma_med))*cos(gamma_med)*sin(2*M_PI/beams_number*i+add_angle), (F/*+mirr_adj[i+beams_number]*/)*sin(gamma_med)/*-mirr_adj[i+beams_number]*/},
+            {-F*cos(gamma_med)*cos(2*M_PI/beams_number*i+add_angle), -F*cos(gamma_med)*sin(2*M_PI/beams_number*i+add_angle), F*sin(gamma_med)},
+            // {-F*cos(gamma_med)*cos(2*M_PI/beams_number*i+add_angle), -F*cos(gamma_med)*sin(2*M_PI/beams_number*i+add_angle), F*sin(gamma_med)-mirr_adj[i+beams_number]},
+            // {-(F+mirr_adj[i+beams_number]/cos(gamma_med))*cos(gamma_med)*cos(2*M_PI/beams_number*i+add_angle), -(F+mirr_adj[i+beams_number]/cos(gamma_med))*cos(gamma_med)*sin(2*M_PI/beams_number*i+add_angle), F*sin(gamma_med)},
+            // {-F*cos(gamma_med)*cos(2*M_PI/beams_number*i+add_angle)+sin(2*M_PI/beams_number*i+add_angle)*mirr_adj[i+beams_number], -F*cos(gamma_med)*sin(2*M_PI/beams_number*i+add_angle)-cos(2*M_PI/beams_number*i+add_angle)*mirr_adj[i+beams_number], F*sin(gamma_med)},
             ax1m2, ax2m2, 4.0*F, 4.0*F
         ));
 
-
         beams1.emplace_back(ParallelBeamAlpha(lambda, {0.0, 0.0, 0.0}, ax1m1, -ax2m1,
                                 //  [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 - h) + sqr(x2)) / (2 * sqr(sigma)) ); },
-                                [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 - h,12) + pow(x2,12)) / (pow(sigma, 12)) ); },
+                                // [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 - h,12) + pow(x2,12)) / (pow(sigma, 12)) ); },
+                                [h, gauss_A, sigma, zern=ZernikeAberrations<Order>(sigma_poly[sig_ind], beam_radius*sqrt(2), i)](double x1, double x2) { return gauss_A * exp( - (pow(x1 - h,12) + pow(x2,12)) / (pow(sigma, 12)) ) * exp(std::complex<double>(0.0, 1.0)*zern(x1-h, x2));},
                                 //[h](double x1, double x2) { return sqr(x1 - h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
                                 // [h](double x1, double x2) { return smoothed(sqrt(sqr(x1 - h) + sqr(x2)), beam_radius); },
                                 [](double, double) { return 0.0; }));
@@ -1326,7 +1360,8 @@ int main(int argc, const char* argv[])
 
         beams2.emplace_back(ParallelBeamAlpha(lambda, {0.0, 0.0, 0.0}, ax1m1, ax2m2,
                                 //  [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (sqr(x1 + h) + sqr(x2)) / (2 * sqr(sigma)) ); },
-                                [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 + h,12) + pow(x2,12)) / (pow(sigma, 12)) ); },
+                                // [h, gauss_A, sigma](double x1, double x2) { return gauss_A * exp( - (pow(x1 + h,12) + pow(x2,12)) / (pow(sigma, 12)) ); },
+                                [h, gauss_A, sigma, zern=ZernikeAberrations<Order>(sigma_poly[sig_ind], beam_radius*sqrt(2), i+beams_number)](double x1, double x2) { return gauss_A * exp( - (pow(x1 + h,12) + pow(x2,12)) / (pow(sigma, 12)) ) * exp(std::complex<double>(0.0, 1.0)*zern(x1+h, x2)); },
                                 //[h](double x1, double x2) { return sqr(x1 + h) + sqr(x2) <= sqr(beam_radius) ? 1.0 : 0.0; },
                                 // [h](double x1, double x2) { return smoothed(sqrt(sqr(x1 + h) + sqr(x2)), beam_radius); },
                                 [](double, double) { return 0.0; }));
@@ -1336,10 +1371,10 @@ int main(int argc, const char* argv[])
         std::string filename_suffix = std::to_string(i);
 
         //plotting mirrors
-        // plot_field_on_given_surface(mirrors1[i], beams1[i], region1, 100, "E", "mirror1", filename_suffix);
-        // std::cout << "mirror1 plotted" << std::endl;
-        // plot_field_on_given_surface(mirrors2[i], beams2[i], region2, 100, "E", "mirror2", filename_suffix);
-        // std::cout << "mirror2 plotted" << std::endl;
+        plot_field_on_given_surface(mirrors1[i], beams1[i], region1, 100, "E", "mirror1", filename_suffix);
+        std::cout << "mirror1 plotted" << std::endl;
+        plot_field_on_given_surface(mirrors2[i], beams2[i], region2, 100, "E", "mirror2", filename_suffix);
+        std::cout << "mirror2 plotted" << std::endl;
     
     }
     std::cout << "mirror plotting ended" << std::endl;
@@ -1497,7 +1532,7 @@ int main(int argc, const char* argv[])
             // fields_trans.constructSummaryMono(phases);
             // plot_field_on_given_surface_3darr(focal_plane_transversal, focal_region_transversal, fields_trans, focal_points_transversal, "E1", "transversal_E1", filename_suffix);
             fields.constructSummaryMono(phases);
-            // plot_field_in_given_area_3darr(focal_volume, focal_area, fields, focal_points, "E1", "field", filename_suffix);
+            plot_field_in_given_area_3darr(focal_volume, focal_area, fields, focal_points, "E1", "field", filename_suffix);
 
             // fields_long.findSummaryMax();
             // fields_long.findSummaryMaxExact();

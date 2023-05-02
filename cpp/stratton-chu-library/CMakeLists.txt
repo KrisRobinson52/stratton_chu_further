@@ -25,6 +25,7 @@ set(LIB_SOURCES
     ${PROJECT_SOURCE_DIR}/stratton-chu/fields-in-region.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/volume.hpp
     ${PROJECT_SOURCE_DIR}/stratton-chu/fields-in-3dregion.hpp
+    ${PROJECT_SOURCE_DIR}/stratton-chu/distorted-beam.hpp
 
 
     ${PROJECT_SOURCE_DIR}/src/utils.cpp
@@ -45,11 +46,14 @@ set(LIB_SOURCES
 
 add_library(${PROJECT_NAME} ${LIB_SOURCES})
 
+add_dependencies(${PROJECT_NAME} Zernike)
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/../3rdparty/cache)
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/../3rdparty/tracker)
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/../3rdparty/threads)
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/../3rdparty/zernike)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   # VTK::CommonCore
@@ -58,5 +62,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   cubature
   polynomial
   boost_math
+  Zernike
 )
 

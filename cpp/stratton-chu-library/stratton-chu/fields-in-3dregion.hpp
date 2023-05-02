@@ -48,16 +48,19 @@ public:
                 Vector xyz(region.x_min + region.widthx() / (n_points-1) * i, region.y_min + region.widthy() / (n_points-1) * j, region.z_min + region.height() / (n_points-1) * k);
                 Position p = vol.point(xyz);
                 self->m_HarmonicsCatalogue[w][k][i][j] = fields[w].get(p);
-                //std::cout << "point ready" << std::endl;
-                // if (i==0 && j==0 && k==0){
-                //     std::cout << "point ready" << std::endl;      
+                // std::cout << "point ready" << std::endl;
+                if (i==0 && j==0 && k==0){
+                    std::cout << "point ready" << std::endl;      
+                }
+                // if (i==80 && j==80){
+                //     std::cout << "opa" << std::endl;      
                 // } 
             }
             operator bool()const{
                 return true;
             }
         };
-        using Threads = Threading::ThreadPool<ConcurrentQueue<Task>,100>;
+        using Threads = Threading::ThreadPool<ConcurrentQueue<Task>,13>;
         typename Threads::TaskQueue tasks;
         // std::cout << "ready" << std::endl;
 

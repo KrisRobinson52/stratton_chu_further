@@ -17,3 +17,6 @@
 [submodule "cpp/3rdparty/threads"]
 	path = cpp/3rdparty/threads
 	url = https://github.com/MaxCharlington/ThreadPool.git
+[submodule "cpp/3rdparty/zernike"]
+	path = cpp/3rdparty/zernike
+	url = https://github.com/joeydumont/zernike
