@@ -63,6 +63,9 @@ ValueType integrate_trapezoid(std::function<ValueType(double, double)> func,
 
 VectorComplex integrate_cubature(std::function<VectorComplex(double, double)> func, const SurfaceRegion& region, double rel_tol, double abs_tol);
 
+VectorComplex integrate_cubature_low_prec(std::function<VectorComplex(double, double)> func, const SurfaceRegion& region, double rel_tol, double abs_tol);
+
+
 double get_F_by_beam_parameters_p(double p, double d, double phi);
 
 double get_F_by_beam_parameters_alpha(double alpha, double phi, double d);

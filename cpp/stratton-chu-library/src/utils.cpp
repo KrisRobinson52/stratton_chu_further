@@ -3,8 +3,11 @@
 #include "polynomial-root-finder.hpp"
 #include "stratton-chu/geometry.hpp"
 
+#include <boost/math/quadrature/exp_sinh.hpp>
+
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 
 using namespace std::complex_literals;
 
@@ -38,15 +41,23 @@ VectorComplex integrate_cubature(std::function<VectorComplex(double, double)> fu
     double xmin[2] = { region.x_min, region.y_min };
     double xmax[2] = { region.x_max, region.y_max };
 
+    // std::cout << xmin[0] << ' '<< xmin[1]<<std::endl;
+    // std::cout << xmax[0] << ' '<< xmax[1]<<std::endl;
+
     double result[6];
     double error[6];
 
     memset(result, 0, sizeof(result));
     memset(error, 0, sizeof(result));
 
+    // std::cout << "in1" << std::endl;
+
     int ret = pcubature(6, c_integrand, reinterpret_cast<void*>(&func), 2, xmin, xmax, 0, abs_tol, rel_tol, ERROR_L2, result, error);
+
     if (ret != 0)
         throw std::runtime_error("Integrator 'pcubature' reports FAILURE result");
+
+    // std::cout << "out2" << std::endl;
 
     VectorComplex result_vector_complex;
     result_vector_complex[0].real(result[0]);
@@ -59,6 +70,44 @@ VectorComplex integrate_cubature(std::function<VectorComplex(double, double)> fu
     result_vector_complex[2].imag(result[5]);
     return result_vector_complex;
 }
+
+
+VectorComplex integrate_cubature_low_prec(std::function<VectorComplex(double, double)> func, const SurfaceRegion& region, double rel_tol, double abs_tol)
+{
+    double xmin[2] = { region.x_min, region.y_min };
+    double xmax[2] = { region.x_max, region.y_max };
+
+    // std::cout << xmin[0] << ' '<< xmin[1]<<std::endl;
+    // std::cout << xmax[0] << ' '<< xmax[1]<<std::endl;
+
+    double result[6];
+    double error[6];
+
+    memset(result, 0, sizeof(result));
+    memset(error, 0, sizeof(result));
+
+    // std::cout << "in1" << std::endl;
+
+    int ret = pcubature(6, c_integrand, reinterpret_cast<void*>(&func), 2, xmin, xmax, 0, abs_tol, rel_tol, ERROR_L2, result, error);
+    // int ret = pcubature(6, c_integrand, reinterpret_cast<void*>(&func), 2, xmin, xmax, 100000, abs_tol, rel_tol, ERROR_L2, result, error);
+    // int ret = hcubature(6, c_integrand, reinterpret_cast<void*>(&func), 2, xmin, xmax, 0, abs_tol, rel_tol, ERROR_L2, result, error);
+    if (ret != 0)
+        throw std::runtime_error("Integrator 'pcubature' reports FAILURE result");
+
+    std::cout << "out2" << std::endl;
+
+    VectorComplex result_vector_complex;
+    result_vector_complex[0].real(result[0]);
+    result_vector_complex[0].imag(result[1]);
+
+    result_vector_complex[1].real(result[2]);
+    result_vector_complex[1].imag(result[3]);
+
+    result_vector_complex[2].real(result[4]);
+    result_vector_complex[2].imag(result[5]);
+    return result_vector_complex;
+}
+
 
 extern "C" int c_integrand(unsigned ndim, const double *x, void *body, unsigned fdim, double *fval)
 {

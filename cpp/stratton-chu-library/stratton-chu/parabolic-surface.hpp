@@ -10,6 +10,7 @@ public:
     // Constructor of Parabolic surface r = r0 + α * x + β * y + [α×β] / |[α×β]| * (x²/a + y²/b)
 
     Position point(const Vector2D& pos) const override;
+    Vector2D point2d(const Vector& pos) const override;
     //Vector dS_over_dxdy(const Vector2D& pos) const override;
     Vector tau1(const Vector2D& pos) const override;
     Vector tau2(const Vector2D& pos) const override;

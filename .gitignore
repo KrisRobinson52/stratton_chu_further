@@ -1,5 +1,7 @@
 build*
 
+cpp/3rdparty
+
 # Prerequisites
 *.d
 

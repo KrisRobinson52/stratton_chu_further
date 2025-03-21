@@ -4,14 +4,18 @@
 #include "stratton-chu/types.hpp"
 #include "stratton-chu/field.hpp"
 #include "stratton-chu/surface.hpp"
+#include "stratton-chu/utils.hpp"
 #include <iostream>
 #include "stratton-chu/stratton-chu-field.hpp"
 #include "stratton-chu/spec-inverse-fourier.hpp"
 #include <vector>
 #include <array>
+#include <list>
+#include <deque>
 #include <string_view>
 #include <fstream>
 //#include "thread_pool.hpp"
+#define IGNORE_BIND_CORE
 #include "threading.hpp"
 
 // constexpr double c = 29979245800.0;
@@ -20,59 +24,371 @@ template <const size_t n_points>
 class FieldsInRegion
 {
 public:
-    FieldsInRegion(ISurface& surf, SurfaceRegion& region, std::string_view region_name, std::vector<StrattonChuReflection> &fields, const size_t n_harm):
+    FieldsInRegion(ISurface& surf, SurfaceRegion& region, std::string_view region_name, std::vector<StrattonChuReflectionLowPrec> &fields, const size_t n_harm):
         m_surf(surf), m_region(region), m_fields(fields), mn_harm(n_harm), mn_points(n_points), m_HarmonicsCatalogue(n_harm), m_SummField(n_points), m_SummFieldIntens(n_points), region_name(region_name)
     {   
         std::ifstream file_dump{this->region_name, std::ios::binary};
         if (file_dump.good())
         {
-            const std::size_t size = n_harm * sizeof(m_HarmonicsCatalogue[0]);
-            file_dump.read(reinterpret_cast<char*>(m_HarmonicsCatalogue.data()), size);
+            for (auto& h :m_HarmonicsCatalogue)
+            {
+                file_dump.read(reinterpret_cast<char*>(h.data()), sizeof(typename decltype(m_HarmonicsCatalogue)::value_type));
+            }            
             return;
+            // const std::size_t size = n_harm * sizeof(m_HarmonicsCatalogue[0]);
+            // file_dump.read(reinterpret_cast<char*>(m_HarmonicsCatalogue.data()), size);
+            // return;
         }
         file_dump.close();
 
         struct Task{
             FieldsInRegion<n_points> *self;
             SurfaceRegion &region;
-            std::vector<StrattonChuReflection> &fields;
+            std::vector<StrattonChuReflectionLowPrec> &fields;
             ISurface &surf;
             size_t w, i, j;
             void operator()(){
                 Vector2D xy(region.x_min + region.width() / (n_points-1) * i, region.y_min + region.height() / (n_points-1) * j);
                 Position p = surf.point(xy);
                 self->m_HarmonicsCatalogue[w][i][j] = fields[w].get(p);
-                if (i==0 && j==0){
-                    std::cout << "start point ready " << w << std::endl;      
-                }
-                if (i==n_points-1 && j==n_points-1){
-                    std::cout << "end point ready" << std::endl;      
-                }
+                // if (i==0 && j==0){
+                //     std::cout << "start point ready " << w << std::endl;      
+                // }
+                // if (i==n_points-1 && j==n_points-1){
+                //     std::cout << "end point ready" << std::endl;      
+                // }
                 // if (i==j){
                 //     std::cout << "point ready " << i << std::endl;      
                 // }
-                // std::cout << "point ready " << std::endl;                 
+                // std::cout << "point ready " << std::endl;
+                std::cout << "point " << i*n_points+j << " ready" << std::endl;                 
             }
             operator bool()const{
                 return true;
             }
         };
-        using Threads = ThreadPool<Task>;
+        using Threads = Threading::ThreadPool<ConcurrentQueue<Task>,14>;
+        // using Threads = ThreadPool<Task>;
         typename Threads::TaskQueue tasks;
 
-        for (size_t w = 0; w < n_harm; w++)
-        {
-            for (size_t i = 0; i < n_points; i++)
-            {
+        // for (size_t j = 0; j < n_points; j++)
+        // {   
+        //     tasks.push(Task{this, region, fields, surf, 0, 0, j});
+        //     tasks.push(Task{this, region, fields, surf, 0, n_points-1, j});
+        //     if (j!=0 && j!=n_points-1) {
+        //         tasks.push(Task{this, region, fields, surf, 0, j, 0});
+        //         tasks.push(Task{this, region, fields, surf, 0, j, n_points-1});
+        //     }
+        // }
+
+        // for (size_t j = 1; j < n_points-1; j++)
+        // {   
+        //     tasks.push(Task{this, region, fields, surf, 0, 1, j});
+        //     tasks.push(Task{this, region, fields, surf, 0, n_points-2, j});
+        //     if (j!=1 && j!=n_points-2) {
+        //         tasks.push(Task{this, region, fields, surf, 0, j, 1});
+        //         tasks.push(Task{this, region, fields, surf, 0, j, n_points-2});
+        //     }
+        // }
+
+        // for (size_t j = 2; j < n_points-2; j++)
+        // {   
+        //     tasks.push(Task{this, region, fields, surf, 0, 2, j});
+        //     tasks.push(Task{this, region, fields, surf, 0, n_points-3, j});
+        //     if (j!=2 && j!=n_points-3) {
+        //         tasks.push(Task{this, region, fields, surf, 0, j, 2});
+        //         tasks.push(Task{this, region, fields, surf, 0, j, n_points-3});
+        //     }
+        // }
+
+        // for (size_t i = 3; i < n_points-3; i++)
+        // {
+        //     for (size_t j = 3; j < n_points-3; j++)
+        //     {   
+        //         tasks.push(Task{this, region, fields, surf, 0, i, j});
+        //     }
+        // }
+
+
+        // for (size_t w = 0; w < n_harm; w++)
+        // {
+        //     for (size_t i = 0; i < n_points; i++)
+        //     {
+        //         for (size_t j = 0; j < n_points; j++)
+        //         {   
+        //             tasks.push(Task{this, region, fields, surf, w, i, j});
+        //         }
+        //     }
+        //     // std::cout << "point "<<w<<" ready for " << region_name << std::endl;
+        // }
+
+
+        if (n_harm==12){
+            // for (size_t w = 0; w < 2; w++)
+            for (size_t w = 0; w < mn_harm; w++)
+            {   
                 for (size_t j = 0; j < n_points; j++)
                 {   
-                    tasks.push(Task{this, region, fields, surf, w, i, j});
+                    tasks.push(Task{this, region, fields, surf, w, 0, j});
+                    tasks.push(Task{this, region, fields, surf, w, n_points-1, j});
+                    if (j!=0 && j!=n_points-1) {
+                        tasks.push(Task{this, region, fields, surf, w, j, 0});
+                        tasks.push(Task{this, region, fields, surf, w, j, n_points-1});
+                    }
+                }
+
+                for (size_t j = 1; j < n_points-1; j++)
+                {   
+                    tasks.push(Task{this, region, fields, surf, w, 1, j});
+                    tasks.push(Task{this, region, fields, surf, w, n_points-2, j});
+                    if (j!=1 && j!=n_points-2) {
+                        tasks.push(Task{this, region, fields, surf, w, j, 1});
+                        tasks.push(Task{this, region, fields, surf, w, j, n_points-2});
+                    }
+                }
+
+                for (size_t j = 2; j < n_points-2; j++)
+                {   
+                    tasks.push(Task{this, region, fields, surf, w, 2, j});
+                    tasks.push(Task{this, region, fields, surf, w, n_points-3, j});
+                    if (j!=2 && j!=n_points-3) {
+                        tasks.push(Task{this, region, fields, surf, w, j, 2});
+                        tasks.push(Task{this, region, fields, surf, w, j, n_points-3});
+                    }
+                }
+
+                for (size_t i = 3; i < n_points-3; i++)
+                {
+                    for (size_t j = 3; j < n_points-3; j++)
+                    {   
+                        tasks.push(Task{this, region, fields, surf, w, i, j});
+                    }
+                }
+                // for (size_t i = 0; i < n_points; i++)
+                // {
+                //     for (size_t j = 0; j < n_points; j++)
+                //     {   
+                //         tasks.push(Task{this, region, fields, surf, w, i, j});
+                //     }
+                // }
+            }
+        }
+        else {
+            for (size_t w = 0; w < n_harm; w++)
+            {
+                for (size_t i = 0; i < n_points; i++)
+                {
+                    for (size_t j = 0; j < n_points; j++)
+                    {   
+                        tasks.push(Task{this, region, fields, surf, w, i, j});
+                    }
                 }
             }
-            // std::cout << "point "<<w<<" ready for " << region_name << std::endl;
         }
         Threads threads{tasks};
         threads.run();
+
+        // if (n_harm==12){
+        //     std::cout << "entering count simulation" << std::endl;
+
+        //     for (size_t w = 2; w < n_harm; w++)
+        //     {
+        //         if (region_name=="focal_plane_long_12-beams_new_config")
+        //         {
+        //             for (size_t i = 0; i < n_points; i++)
+        //             {
+        //                 for (size_t j = 0; j < n_points; j++)
+        //                 {   
+        //                     switch (w) {
+        //                     case 2:   //1 otn y
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(m_HarmonicsCatalogue[1][n_points-1-i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(m_HarmonicsCatalogue[1][n_points-1-i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][n_points-1-i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][n_points-1-i][j].E[2].imag());     //z
+        //                         break;
+        //                     case 3:   //0 otn y
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[0][n_points-1-i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[0][n_points-1-i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(m_HarmonicsCatalogue[0][n_points-1-i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(m_HarmonicsCatalogue[0][n_points-1-i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[0][n_points-1-i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[0][n_points-1-i][j].E[2].imag());     //z
+        //                         break;
+        //                     case 4:   //1 otn y,x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     case 5:   //1 otn x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(m_HarmonicsCatalogue[1][i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(m_HarmonicsCatalogue[1][i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     case 6:   //0 otn y,z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(m_HarmonicsCatalogue[0][n_points-1-i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(m_HarmonicsCatalogue[0][n_points-1-i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[0][n_points-1-i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[0][n_points-1-i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[0][n_points-1-i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[0][n_points-1-i][j].E[2].imag());
+        //                         break;
+        //                     case 7:   //1 otn x,y,z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     case 8:   //1 otn x,z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(m_HarmonicsCatalogue[1][i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(m_HarmonicsCatalogue[1][i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     case 9:   //0 otn z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[0][i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[0][i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[0][i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[0][i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[0][i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[0][i][j].E[2].imag());
+        //                         break;
+        //                     case 10:   //1 otn z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[1][i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[1][i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[1][i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[1][i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][i][j].E[2].imag());
+        //                         break;
+        //                     case 11:   //1 otn y,z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(m_HarmonicsCatalogue[1][n_points-1-i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(m_HarmonicsCatalogue[1][n_points-1-i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][n_points-1-i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][n_points-1-i][j].E[2].imag());
+        //                         break;
+        //                     default:
+        //                         break;                                
+        //                     }
+        //                     if (i==0 && j==0){
+        //                         std::cout << "starting point " << w << std::endl;       
+        //                     }
+
+        //                 }
+        //             }
+        //             // std::cout << "point "<<w<<" ready for " << region_name << std::endl;
+        //         }
+        //         if (region_name=="focal_plane_trans_12-beams_new_config")
+        //             for (size_t i = 0; i < n_points; i++)
+        //             {
+        //                 for (size_t j = 0; j < n_points; j++)
+        //                 {   
+        //                     switch (w) {
+        //                     case 2:   //1 otn y
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(m_HarmonicsCatalogue[1][n_points-1-i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(m_HarmonicsCatalogue[1][n_points-1-i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][n_points-1-i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][n_points-1-i][j].E[2].imag());     //z
+        //                         break;
+        //                     case 3:   //0 otn y
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[0][n_points-1-i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[0][n_points-1-i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(m_HarmonicsCatalogue[0][n_points-1-i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(m_HarmonicsCatalogue[0][n_points-1-i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[0][n_points-1-i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[0][n_points-1-i][j].E[2].imag());     //z
+        //                         break;
+        //                     case 4:   //1 otn y,x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[1][n_points-1-i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][n_points-1-i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][n_points-1-i][j].E[2].imag());
+        //                         break;
+        //                     case 5:   //1 otn x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(m_HarmonicsCatalogue[1][i][j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(m_HarmonicsCatalogue[1][i][j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[1][i][j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[1][i][j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][i][j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][i][j].E[2].imag());
+        //                         break;
+        //                     case 6:   //0 otn y,z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(m_HarmonicsCatalogue[0][n_points-1-i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(m_HarmonicsCatalogue[0][n_points-1-i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[0][n_points-1-i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[0][n_points-1-i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[0][n_points-1-i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[0][n_points-1-i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     case 7:   //1 otn x,y,z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     case 8:   //1 otn x,z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(m_HarmonicsCatalogue[1][i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(m_HarmonicsCatalogue[1][i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     case 9:   //0 otn z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[0][i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[0][i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[0][i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[0][i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[0][i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[0][i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     case 10:   //1 otn z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[1][i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     case 11:   //1 otn y,z
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].real(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[0].real());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[0].imag(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[0].imag());     //x
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].real(-m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[1].real());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[1].imag(-m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[1].imag());     //y
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].real(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[2].real());     //z
+        //                         m_HarmonicsCatalogue[w][i][j].E[2].imag(m_HarmonicsCatalogue[1][n_points-1-i][n_points-1-j].E[2].imag());
+        //                         break;
+        //                     default:
+        //                         break;                                
+        //                     }
+        //                     if (i==0 && j==0){
+        //                         std::cout << "starting point " << w << std::endl;       
+        //                     }
+
+        //                 }
+        //             }
+        //         }
+        //     }            
+        // }
         max_summary=0.0;
         irow_max=0;
         icolumn_max=0;
@@ -222,7 +538,7 @@ public:
         // double c = 29979245800.0;
         double intensity;
         // intensity = c/8/M_PI*max_summary*max_summary;
-        intensity = max_summary*max_summary*4e13;
+        intensity = max_summary*max_summary*4e13*50/16;
         return intensity;
     }
 
@@ -231,7 +547,7 @@ public:
         // double c = 29979245800.0;
         double intensity;
         // intensity = c/8/M_PI*max_summary*max_summary;
-        intensity = max_summary_exact*max_summary_exact*4e13;
+        intensity = max_summary_exact*max_summary_exact*4e13*50/16;
         return intensity;
     }
 
@@ -255,7 +571,7 @@ public:
 private:
     ISurface& m_surf;
     SurfaceRegion m_region;
-    std::vector<StrattonChuReflection> &m_fields;    
+    std::vector<StrattonChuReflectionLowPrec> &m_fields;    
     size_t mn_harm;
     size_t mn_points;
     double max_summary;

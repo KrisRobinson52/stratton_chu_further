@@ -14,6 +14,15 @@ Position PlaneSurface::point(const Vector2D& pos) const
     return result;
 }
 
+Vector2D PlaneSurface::point2d(const Vector& pos) const
+{
+    Vector2D result;
+    Vector support=pos-m_r0;
+    result[0] = support*m_alpha;
+    result[1] = support*m_beta;
+    return result;
+}
+
 Vector PlaneSurface::dS_over_dxdy(const Vector2D&) const
 {
     return m_dS_over_dxdy_const;

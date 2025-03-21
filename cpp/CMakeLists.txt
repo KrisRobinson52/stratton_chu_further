@@ -7,6 +7,7 @@ add_subdirectory(3rdparty/polynomial)
 add_subdirectory(3rdparty/math)
 add_subdirectory(stratton-chu-library)
 add_subdirectory(app)
+# add_subdirectory(3rdparty/alglib)
 
 enable_testing()
 

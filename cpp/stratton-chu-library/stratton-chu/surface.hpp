@@ -7,6 +7,7 @@ class ISurface
 {
 public:
     virtual Position point(const Vector2D& pos) const = 0;
+    virtual Vector2D point2d(const Vector& pos) const = 0;
     virtual Vector dS_over_dxdy(const Vector2D& pos) const = 0;
     virtual Vector tau1(const Vector2D& pos) const = 0;
     virtual Vector tau2(const Vector2D& pos) const = 0;
@@ -16,6 +17,14 @@ public:
 class SurfaceBase : public ISurface
 {
 public:
+    Vector2D point2d(const Vector& pos) const override
+    {
+        Vector2D result;
+        result[0]=pos[0];
+        result[1]=pos[1];
+        return result;
+    }
+
     Vector dS_over_dxdy(const Vector2D& pos) const override
     {
         return tau1(pos) % tau2(pos);

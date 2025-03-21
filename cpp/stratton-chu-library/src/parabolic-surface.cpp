@@ -23,6 +23,15 @@ Vector ParabolicSurface::dS_over_dxdy(const Vector2D& pos) const
     return tau1(pos) % tau2(pos);
 }*/
 
+Vector2D ParabolicSurface::point2d(const Vector& pos) const
+{
+    Vector2D result;
+    Vector support=pos-m_r0;
+    result[0] = support*m_alpha;
+    result[1] = support*m_beta;
+    return result;
+}
+
 Vector ParabolicSurface::tau1(const Vector2D& pos) const
 {
     Vector r_x;
